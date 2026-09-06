@@ -72,13 +72,83 @@ const { data, error } = await window.supabaseClient
 if (error || !data) throw new Error("Invalid User ID or Password");
 
                 // Save active session
-localStorage.setItem('RVRG_ACTIVE_USER', JSON.stringify({
-    id: data.id,
-    name: data.full_name,
-    role: data.role
-}));
-window.location.href = 'dashboard.html';
+// ==================================================
+// LOAD USER SECTION PERMISSIONS
+// ==================================================
 
+const {
+    data: permissions,
+    error: permissionError
+} = await supabase
+
+    .from("user_permissions")
+
+    .select(
+        "section_key, is_allowed"
+    )
+
+    .eq(
+        "user_id",
+        data.id
+    );
+
+
+if (permissionError) {
+
+    console.error(
+        "Permission Load Error:",
+        permissionError
+    );
+
+}
+
+
+// ==================================================
+// BUILD PERMISSION MAP
+// ==================================================
+
+const sectionPermissions = {};
+
+
+(permissions || []).forEach(
+    permission => {
+
+        sectionPermissions[
+            permission.section_key
+        ] =
+            permission.is_allowed === true;
+
+    }
+);
+
+
+// ==================================================
+// SAVE ACTIVE USER + PERMISSIONS
+// ==================================================
+
+localStorage.setItem(
+    'RVRG_ACTIVE_USER',
+    JSON.stringify({
+
+        id:
+            data.id,
+
+        name:
+            data.name ||
+            data.full_name,
+
+        role:
+            data.role,
+
+        sectionPermissions:
+            sectionPermissions
+
+    })
+);
+
+
+window.location.href =
+    'dashboard.html';
 } catch (err) {
 errorDiv.innerText = err.message;
 errorDiv.classList.remove('d-none');
