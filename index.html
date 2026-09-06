@@ -79,7 +79,7 @@ if (error || !data) throw new Error("Invalid User ID or Password");
 const {
     data: permissions,
     error: permissionError
-} = await supabase
+} = await window.supabaseClient
 
     .from("user_permissions")
 
