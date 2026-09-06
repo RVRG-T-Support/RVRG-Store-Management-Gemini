@@ -3502,8 +3502,10 @@ else{
     return errors;
 
 }
+
 // ====================================================
 // DOWNLOAD FAILED IMPORT ROWS
+// COMPLETE ORIGINAL DATA + EXCEL ROW + ERROR
 // ====================================================
 
 function downloadFailedImportRows(failedRows){
@@ -3515,58 +3517,152 @@ function downloadFailedImportRows(failedRows){
         return;
     }
 
+
     if(
         typeof XLSX === "undefined"
     ){
+
         console.error(
             "Excel library is not loaded."
         );
 
         return;
+
     }
 
 
     const exportRows =
-        failedRows.map(item => {
+        failedRows.map(
+            item => {
 
-            return {
-                Excel_Row:
-                    item.row || "",
+                const original =
+                    item.originalRow || {};
 
-                Material_Code:
-                    item.material_code || "",
 
-                Material_Name:
-                    item.material ||
-                    item.Material_Name ||
-                    "",
+                return {
 
-                Department:
-                    item.Department || "",
+                    "Excel Row":
+                        item.row || "",
 
-                Category:
-                    item.Category || "",
+                    "Material Code":
+                        original.Material_Code ||
+                        item.material_code ||
+                        "",
 
-                Brand:
-                    item.Brand || "",
+                    "Department":
+                        original.Department ||
+                        item.Department ||
+                        "",
 
-                Unit:
-                    item.Unit || "",
+                    "Category":
+                        original.Category ||
+                        item.Category ||
+                        "",
 
-                Opening_Stock:
-                    item.Opening_Stock || "",
+                    "Material Name":
+                        original.Material_Name ||
+                        item.Material_Name ||
+                        item.material ||
+                        "",
 
-                Failure_Reason:
-                    item.error || ""
-            };
+                    "Brand":
+                        original.Brand ||
+                        item.Brand ||
+                        "",
 
-        });
+                    "Item Type":
+                        original.Item_Type ||
+                        "",
+
+                    "Item Size":
+                        original.Item_Size ||
+                        "",
+
+                    "Specification":
+                        original.Specification ||
+                        "",
+
+                    "Unit":
+                        original.Unit ||
+                        item.Unit ||
+                        "",
+
+                    "Opening Stock":
+                        original.Opening_Stock ??
+                        item.Opening_Stock ??
+                        "",
+
+                    "Minimum Stock":
+                        original.Minimum_Stock ??
+                        "",
+
+                    "Rack Location":
+                        original.Rack_Location ||
+                        "",
+
+                    "Unit Cost":
+                        original.Unit_Cost ??
+                        "",
+
+                    "GST Type":
+                        original.GST_Type ||
+                        "",
+
+                    "GST %":
+                        original.GST_Percentage ??
+                        "",
+
+                    "Description":
+                        original.Description ||
+                        "",
+
+                    "Status":
+                        original.Status ||
+                        "",
+
+                    "Failure Reason":
+                        item.error ||
+                        "Import failed"
+
+                };
+
+            }
+        );
 
 
     const worksheet =
         XLSX.utils.json_to_sheet(
             exportRows
         );
+
+
+    // --------------------------------------------
+    // COLUMN WIDTHS
+    // --------------------------------------------
+
+    worksheet["!cols"] = [
+
+        { wch: 12 }, // Excel Row
+        { wch: 20 }, // Material Code
+        { wch: 20 }, // Department
+        { wch: 20 }, // Category
+        { wch: 35 }, // Material Name
+        { wch: 20 }, // Brand
+        { wch: 20 }, // Item Type
+        { wch: 18 }, // Item Size
+        { wch: 25 }, // Specification
+        { wch: 12 }, // Unit
+        { wch: 15 }, // Opening Stock
+        { wch: 15 }, // Minimum Stock
+        { wch: 25 }, // Rack Location
+        { wch: 15 }, // Unit Cost
+        { wch: 15 }, // GST Type
+        { wch: 10 }, // GST %
+        { wch: 40 }, // Description
+        { wch: 12 }, // Status
+        { wch: 60 }  // Failure Reason
+
+    ];
 
 
     const workbook =
@@ -3584,14 +3680,15 @@ function downloadFailedImportRows(failedRows){
         workbook,
         "Material_Import_Failed_Rows.xlsx"
     );
+
 }
-async function importMaterialsFromExcel(){
 
     // ====================================================
     // PREVENT DUPLICATE IMPORT EXECUTION
     // ====================================================
+        async function importMaterialsFromExcel(){
 
-    if(window.materialImportRunning === true){
+            if(window.materialImportRunning === true){
 
         console.warn(
             "Import already running. Duplicate request ignored."
@@ -3938,40 +4035,139 @@ if(validationErrors.length > 0){
         validationErrors
     );
 
+
+    // --------------------------------------------
+    // BUILD COMPLETE FAILURE RECORDS
+    // --------------------------------------------
+
+    const validationFailures =
+        validationErrors.map(
+            item => {
+
+                const originalRow =
+                    importedMaterialRows[
+                        Number(item.row) - 2
+                    ] || {};
+
+
+                return {
+
+                    row:
+                        item.row,
+
+                    material_code:
+                        originalRow.Material_Code ||
+                        item.material_code ||
+                        "",
+
+                    material:
+                        originalRow.Material_Name ||
+                        item.material ||
+                        "",
+
+                    Material_Name:
+                        originalRow.Material_Name ||
+                        "",
+
+                    Department:
+                        originalRow.Department ||
+                        "",
+
+                    Category:
+                        originalRow.Category ||
+                        "",
+
+                    Brand:
+                        originalRow.Brand ||
+                        "",
+
+                    Unit:
+                        originalRow.Unit ||
+                        "",
+
+                    Opening_Stock:
+                        originalRow.Opening_Stock ??
+                        "",
+
+                    error:
+                        item.error ||
+                        "Validation failed",
+
+                    originalRow:
+                        originalRow
+
+                };
+
+            }
+        );
+
+
+    // --------------------------------------------
+    // AUTOMATICALLY DOWNLOAD FAILED ROWS
+    // --------------------------------------------
+
+    downloadFailedImportRows(
+        validationFailures
+    );
+
+
+    // --------------------------------------------
+    // BUILD USER MESSAGE
+    // --------------------------------------------
+
     let message =
         "IMPORT REJECTED.\n\n" +
+
         importedMaterialRows.length +
         " row(s) found in Excel.\n" +
-        validationErrors.length +
+
+        validationFailures.length +
         " row(s) failed validation.\n\n";
 
 
-    validationErrors.forEach(
+    validationFailures.forEach(
         item => {
 
             message +=
-                "Row " +
+
+                "Excel Row " +
                 item.row +
+
                 " — " +
-                item.material +
+
+                (
+                    item.material ||
+                    "(blank)"
+                ) +
+
                 "\n" +
+
                 item.error +
+
                 "\n\n";
 
         }
     );
 
+
     console.table(
-        validationErrors
+        validationFailures
     );
 
 
     showAlert(
-        message,
+
+        message +
+
+        "The failed rows have been downloaded to Excel.",
+
         "danger"
+
     );
 
+
     return;
+
 }
         let successCount = 0;
 
@@ -4825,17 +5021,48 @@ successCount++;
 
                 failedRows.push({
 
-                    row:
-                        i + 2,
+    row:
+        i + 2,
 
-                    material:
-                        row.Material_Name ||
-                        "(blank)",
+    material_code:
+        row.Material_Code ||
+        "",
 
-                    error:
-                        rowError.message
+    material:
+        row.Material_Name ||
+        "(blank)",
 
-                });
+    Material_Name:
+        row.Material_Name ||
+        "",
+
+    Department:
+        row.Department ||
+        "",
+
+    Category:
+        row.Category ||
+        "",
+
+    Brand:
+        row.Brand ||
+        "",
+
+    Unit:
+        row.Unit ||
+        "",
+
+    Opening_Stock:
+        row.Opening_Stock ??
+        "",
+
+    error:
+        rowError.message,
+
+    originalRow:
+        row
+
+});
 
             }
 
