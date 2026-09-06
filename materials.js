@@ -2708,7 +2708,7 @@ function normalizeImportMatch(value){
 
 //====================================================
 // FIND EXISTING MATERIAL
-// SMART MATCH + ENRICHMENT
+// 4 OF 5 CHARACTERISTICS = DUPLICATE
 //====================================================
 
 function findExistingMaterial(
@@ -2723,273 +2723,73 @@ function findExistingMaterial(
 ){
 
     const targetName =
-        normalizeImportMatch(materialName);
+        normalizeImportMatch(
+            materialName
+        );
 
     const targetBrand =
-        normalizeImportMatch(brand);
+        normalizeImportMatch(
+            brand
+        );
 
     const targetItemType =
-        normalizeImportMatch(itemType);
+        normalizeImportMatch(
+            itemType
+        );
 
     const targetItemSize =
-        normalizeImportMatch(itemSize);
+        normalizeImportMatch(
+            itemSize
+        );
 
     const targetSpecification =
-        normalizeImportMatch(specification);
+        normalizeImportMatch(
+            specification
+        );
 
 
     // ------------------------------------------------
-    // CORE MATERIAL MATCH
+    // FIRST MATCH
     // Department + Category + Material Name
     // ------------------------------------------------
 
     const candidates =
-        (materials || []).filter(item => {
+        (materials || []).filter(
+            item => {
 
-            return (
+                return (
 
-                Number(item.department_id) ===
-                Number(departmentId)
+                    Number(
+                        item.department_id
+                    ) ===
+                    Number(
+                        departmentId
+                    )
 
-                &&
+                    &&
 
-                Number(item.category_id || 0) ===
-                Number(categoryId || 0)
+                    Number(
+                        item.category_id || 0
+                    ) ===
+                    Number(
+                        categoryId || 0
+                    )
 
-                &&
+                    &&
 
-                normalizeImportMatch(
-                    item.material_name
-                ) === targetName
+                    normalizeImportMatch(
+                        item.material_name
+                    ) ===
+                    targetName
 
-            );
-
-        });
-
-
-    if(candidates.length === 0){
-
-        return null;
-
-    }
-
-
-    // ------------------------------------------------
-    // SCORE EACH EXISTING MATERIAL
-    //
-    // A populated incoming field must either:
-    // 1. match existing value
-    // OR
-    // 2. existing value must be blank so it can
-    //    be enriched.
-    //
-    // Different populated values = NOT a match.
-    // ------------------------------------------------
-
-    const scored = [];
-
-
-    candidates.forEach(item => {
-
-        const existingBrand =
-            normalizeImportMatch(
-                item.brand
-            );
-
-        const existingItemType =
-            normalizeImportMatch(
-                item.item_type
-            );
-
-        const existingItemSize =
-            normalizeImportMatch(
-                item.item_size
-            );
-
-        const existingSpecification =
-            normalizeImportMatch(
-                item.specification
-            );
-
-
-        let compatible = true;
-
-        let score = 0;
-
-
-        // --------------------------------------------
-        // BRAND
-        // --------------------------------------------
-
-        if(targetBrand !== ""){
-
-            if(
-                existingBrand !== "" &&
-                existingBrand !== targetBrand
-            ){
-
-                compatible = false;
+                );
 
             }
-            else if(
-                existingBrand === targetBrand
-            ){
+        );
 
-                score += 4;
-
-            }
-
-        }
-        else if(existingBrand === ""){
-
-            score += 1;
-
-        }
-
-
-        // --------------------------------------------
-        // ITEM TYPE
-        // --------------------------------------------
-
-        if(targetItemType !== ""){
-
-            if(
-                existingItemType !== "" &&
-                existingItemType !== targetItemType
-            ){
-
-                compatible = false;
-
-            }
-            else if(
-                existingItemType === targetItemType
-            ){
-
-                score += 3;
-
-            }
-
-        }
-        else if(existingItemType === ""){
-
-            score += 1;
-
-        }
-
-
-        // --------------------------------------------
-        // ITEM SIZE
-        // --------------------------------------------
-
-        if(targetItemSize !== ""){
-
-            if(
-                existingItemSize !== "" &&
-                existingItemSize !== targetItemSize
-            ){
-
-                compatible = false;
-
-            }
-            else if(
-                existingItemSize === targetItemSize
-            ){
-
-                score += 3;
-
-            }
-
-        }
-        else if(existingItemSize === ""){
-
-            score += 1;
-
-        }
-
-
-        // --------------------------------------------
-        // SPECIFICATION
-        // --------------------------------------------
-
-        if(targetSpecification !== ""){
-
-            if(
-                existingSpecification !== "" &&
-                existingSpecification !==
-                    targetSpecification
-            ){
-
-                compatible = false;
-
-            }
-            else if(
-                existingSpecification ===
-                    targetSpecification
-            ){
-
-                score += 5;
-
-            }
-
-        }
-        else if(existingSpecification === ""){
-
-            score += 1;
-
-        }
-
-
-        if(compatible){
-
-            scored.push({
-                item: item,
-                score: score
-            });
-
-        }
-
-    });
-
-
-    // ------------------------------------------------
-    // NO COMPATIBLE MATERIAL
-    //
-    // This is NOT an error.
-    // It means this is a different material variant.
-    // ------------------------------------------------
-
-    if(scored.length === 0){
-
-        return null;
-
-    }
-
-
-    // ------------------------------------------------
-    // SORT BY BEST MATCH
-    // ------------------------------------------------
-
-    scored.sort(
-        (a,b) =>
-            b.score - a.score
-    );
-
-
-    const best =
-        scored[0];
-
-
-    // ------------------------------------------------
-    // ONLY RETURN A MATCH WHEN IT IS UNAMBIGUOUS
-    //
-    // If two materials have exactly the same score,
-    // do NOT guess.
-    // Return null so a new material can be created.
-    // ------------------------------------------------
 
     if(
-        scored.length > 1 &&
-        scored[0].score === scored[1].score
+        candidates.length === 0
     ){
 
         return null;
@@ -2997,7 +2797,167 @@ function findExistingMaterial(
     }
 
 
-    return best.item;
+    // ------------------------------------------------
+    // CHECK 4 OUT OF 5 CHARACTERISTICS
+    //
+    // Brand
+    // Item Type
+    // Item Size
+    // Specification
+    //
+    // A blank incoming value is treated as
+    // "not contradictory".
+    //
+    // If at least 4 characteristics match,
+    // treat as duplicate.
+    // ------------------------------------------------
+
+    const scored = [];
+
+
+    candidates.forEach(
+        item => {
+
+            const existingBrand =
+                normalizeImportMatch(
+                    item.brand
+                );
+
+            const existingItemType =
+                normalizeImportMatch(
+                    item.item_type
+                );
+
+            const existingItemSize =
+                normalizeImportMatch(
+                    item.item_size
+                );
+
+            const existingSpecification =
+                normalizeImportMatch(
+                    item.specification
+                );
+
+
+            let matchCount = 0;
+
+
+            // ----------------------------------------
+            // BRAND
+            // ----------------------------------------
+
+            if(
+                targetBrand === "" ||
+                existingBrand === "" ||
+                targetBrand === existingBrand
+            ){
+
+                matchCount++;
+
+            }
+
+
+            // ----------------------------------------
+            // ITEM TYPE
+            // ----------------------------------------
+
+            if(
+                targetItemType === "" ||
+                existingItemType === "" ||
+                targetItemType === existingItemType
+            ){
+
+                matchCount++;
+
+            }
+
+
+            // ----------------------------------------
+            // ITEM SIZE
+            // ----------------------------------------
+
+            if(
+                targetItemSize === "" ||
+                existingItemSize === "" ||
+                targetItemSize === existingItemSize
+            ){
+
+                matchCount++;
+
+            }
+
+
+            // ----------------------------------------
+            // SPECIFICATION
+            // ----------------------------------------
+
+            if(
+                targetSpecification === "" ||
+                existingSpecification === "" ||
+                targetSpecification ===
+                    existingSpecification
+            ){
+
+                matchCount++;
+
+            }
+
+
+            scored.push({
+
+                item:
+                    item,
+
+                matchCount:
+                    matchCount
+
+            });
+
+        }
+    );
+
+
+    // ------------------------------------------------
+    // BEST MATCH
+    // ------------------------------------------------
+
+    scored.sort(
+        (a,b) =>
+            b.matchCount -
+            a.matchCount
+    );
+
+
+    const best =
+        scored[0];
+
+
+    if(!best){
+
+        return null;
+
+    }
+
+
+    // ------------------------------------------------
+    // 4 OR MORE MATCHES = DUPLICATE
+    // ------------------------------------------------
+
+    if(
+        best.matchCount >= 4
+    ){
+
+        return best.item;
+
+    }
+
+
+    // ------------------------------------------------
+    // LESS THAN 4 MATCHES
+    // DIFFERENT MATERIAL
+    // ------------------------------------------------
+
+    return null;
 
 }
 
@@ -3243,7 +3203,71 @@ function findExistingMaterial(
     return exactMatches[0];
 
 }
+// ====================================================
+// SAVE / UPDATE OPENING STOCK
+// ====================================================
 
+async function saveOpeningStock(
+    materialId,
+    materialCode,
+    openingStock
+){
+
+    const qty =
+        Number(
+            openingStock || 0
+        );
+
+
+    // No opening stock to add
+
+    if(qty <= 0){
+
+        return;
+
+    }
+
+
+    const {
+        error
+    } = await supabase
+
+        .from("stock_ledger")
+
+        .insert({
+
+            material_id:
+                materialId,
+
+            transaction_type:
+                "STOCK_IN",
+
+            quantity:
+                qty,
+
+            reference_no:
+                "OPENING-" +
+                materialCode,
+
+            remarks:
+                "Opening stock imported from Material Master Excel",
+
+            created_by:
+                currentUser?.id || 6,
+
+            transaction_date:
+                new Date().toISOString()
+
+        });
+
+
+    if(error){
+
+        throw error;
+
+    }
+
+}
 
 // ====================================================
 // STRICT MATERIAL EXCEL PRE-VALIDATION
