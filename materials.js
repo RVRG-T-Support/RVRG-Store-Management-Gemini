@@ -3001,61 +3001,247 @@ function findExistingMaterial(
 
 }
 
-// ====================================================
-// SAVE / UPDATE OPENING STOCK
-// ====================================================
+//====================================================
+// FIND EXISTING MATERIAL
+// STRICT MATCH + ENRICHMENT
+//====================================================
 
-// ====================================================
-// ADD STOCK FROM MATERIAL EXCEL IMPORT
-// ====================================================
-
-async function saveOpeningStock(
-    materialId,
-    materialCode,
-    openingStock
+function findExistingMaterial(
+    materials,
+    materialName,
+    departmentId,
+    categoryId,
+    brand,
+    itemType,
+    itemSize,
+    specification
 ){
 
-    const qty = Number(openingStock || 0);
+    const targetName =
+        normalizeImportMatch(
+            materialName
+        );
 
-    if(qty <= 0){
-        return;
+    const targetBrand =
+        normalizeImportMatch(
+            brand
+        );
+
+    const targetItemType =
+        normalizeImportMatch(
+            itemType
+        );
+
+    const targetItemSize =
+        normalizeImportMatch(
+            itemSize
+        );
+
+    const targetSpecification =
+        normalizeImportMatch(
+            specification
+        );
+
+
+    // ------------------------------------------------
+    // CORE MATCH
+    // Department + Category + Material Name
+    // ------------------------------------------------
+
+    const candidates =
+        (materials || []).filter(
+            item => {
+
+                return (
+
+                    Number(
+                        item.department_id
+                    ) ===
+                    Number(
+                        departmentId
+                    )
+
+                    &&
+
+                    Number(
+                        item.category_id || 0
+                    ) ===
+                    Number(
+                        categoryId || 0
+                    )
+
+                    &&
+
+                    normalizeImportMatch(
+                        item.material_name
+                    ) ===
+                    targetName
+
+                );
+
+            }
+        );
+
+
+    if(
+        candidates.length === 0
+    ){
+
+        return null;
+
     }
 
-    const referenceNo =
-        "IMPORT-" +
-        String(materialCode).trim() +
-        "-" +
-        Date.now();
 
-    const {
-        error: insertError
-    } = await supabase
-        .from("stock_ledger")
-        .insert([{
-            material_id: Number(materialId),
+    // ------------------------------------------------
+    // STRICT ATTRIBUTE MATCH
+    //
+    // RULE:
+    //
+    // Incoming Excel value is blank:
+    //     Existing value MUST also be blank.
+    //
+    // Incoming Excel value is populated:
+    //     Existing value must be SAME.
+    //
+    // Therefore:
+    //
+    // Excel blank + Database SQUARE
+    //     = NOT A MATCH
+    //
+    // This prevents the previous Ceiling Light
+    // problem.
+    // ------------------------------------------------
 
-            transaction_type:
-                "STOCK_IN",
+    const exactMatches =
+        candidates.filter(
+            item => {
 
-            quantity: qty,
+                const existingBrand =
+                    normalizeImportMatch(
+                        item.brand
+                    );
 
-            reference_no:
-                referenceNo,
+                const existingItemType =
+                    normalizeImportMatch(
+                        item.item_type
+                    );
 
-            request_id: null,
+                const existingItemSize =
+                    normalizeImportMatch(
+                        item.item_size
+                    );
 
-            remarks:
-                "Additional stock imported from Excel",
+                const existingSpecification =
+                    normalizeImportMatch(
+                        item.specification
+                    );
 
-            created_by: null,
 
-            transaction_date:
-                new Date().toISOString()
-        }]);
+                // ------------------------------------
+                // BRAND
+                // ------------------------------------
 
-    if(insertError){
-        throw insertError;
+                if(
+                    targetBrand !==
+                    existingBrand
+                ){
+
+                    return false;
+
+                }
+
+
+                // ------------------------------------
+                // ITEM TYPE
+                // ------------------------------------
+
+                if(
+                    targetItemType !==
+                    existingItemType
+                ){
+
+                    return false;
+
+                }
+
+
+                // ------------------------------------
+                // ITEM SIZE
+                // ------------------------------------
+
+                if(
+                    targetItemSize !==
+                    existingItemSize
+                ){
+
+                    return false;
+
+                }
+
+
+                // ------------------------------------
+                // SPECIFICATION
+                // ------------------------------------
+
+                if(
+                    targetSpecification !==
+                    existingSpecification
+                ){
+
+                    return false;
+
+                }
+
+
+                return true;
+
+            }
+        );
+
+
+    // ------------------------------------------------
+    // NO EXACT MATCH
+    //
+    // This is a DIFFERENT material.
+    // It must be created as a new material.
+    // ------------------------------------------------
+
+    if(
+        exactMatches.length === 0
+    ){
+
+        return null;
+
     }
+
+
+    // ------------------------------------------------
+    // MORE THAN ONE EXACT MATCH
+    //
+    // Do not guess.
+    // Treat as a new/review material.
+    // ------------------------------------------------
+
+    if(
+        exactMatches.length > 1
+    ){
+
+        console.warn(
+            "Multiple exact material matches found:",
+            materialName
+        );
+
+        return null;
+
+    }
+
+
+    // ------------------------------------------------
+    // EXACTLY ONE MATCH
+    // ------------------------------------------------
+
+    return exactMatches[0];
+
 }
 
 
@@ -3508,13 +3694,17 @@ else{
 // COMPLETE ORIGINAL DATA + EXCEL ROW + ERROR
 // ====================================================
 
-function downloadFailedImportRows(failedRows){
+function downloadFailedImportRows(
+    failedRows
+){
 
     if(
         !failedRows ||
         !failedRows.length
     ){
+
         return;
+
     }
 
 
@@ -3535,90 +3725,63 @@ function downloadFailedImportRows(failedRows){
         failedRows.map(
             item => {
 
-                const original =
-                    item.originalRow || {};
-
-
                 return {
 
                     "Excel Row":
                         item.row || "",
 
                     "Material Code":
-                        original.Material_Code ||
-                        item.material_code ||
-                        "",
+                        item.material_code || "",
 
                     "Department":
-                        original.Department ||
-                        item.Department ||
-                        "",
+                        item.Department || "",
 
                     "Category":
-                        original.Category ||
-                        item.Category ||
-                        "",
+                        item.Category || "",
 
                     "Material Name":
-                        original.Material_Name ||
                         item.Material_Name ||
                         item.material ||
                         "",
 
                     "Brand":
-                        original.Brand ||
-                        item.Brand ||
-                        "",
+                        item.Brand || "",
 
                     "Item Type":
-                        original.Item_Type ||
-                        "",
+                        item.Item_Type || "",
 
                     "Item Size":
-                        original.Item_Size ||
-                        "",
+                        item.Item_Size || "",
 
                     "Specification":
-                        original.Specification ||
-                        "",
+                        item.Specification || "",
 
                     "Unit":
-                        original.Unit ||
-                        item.Unit ||
-                        "",
+                        item.Unit || "",
 
                     "Opening Stock":
-                        original.Opening_Stock ??
-                        item.Opening_Stock ??
-                        "",
+                        item.Opening_Stock ?? "",
 
                     "Minimum Stock":
-                        original.Minimum_Stock ??
-                        "",
+                        item.Minimum_Stock ?? "",
 
                     "Rack Location":
-                        original.Rack_Location ||
-                        "",
+                        item.Rack_Location || "",
 
                     "Unit Cost":
-                        original.Unit_Cost ??
-                        "",
+                        item.Unit_Cost ?? "",
 
                     "GST Type":
-                        original.GST_Type ||
-                        "",
+                        item.GST_Type || "",
 
                     "GST %":
-                        original.GST_Percentage ??
-                        "",
+                        item.GST_Percentage ?? "",
 
                     "Description":
-                        original.Description ||
-                        "",
+                        item.Description || "",
 
                     "Status":
-                        original.Status ||
-                        "",
+                        item.Status || "",
 
                     "Failure Reason":
                         item.error ||
@@ -3636,31 +3799,27 @@ function downloadFailedImportRows(failedRows){
         );
 
 
-    // --------------------------------------------
-    // COLUMN WIDTHS
-    // --------------------------------------------
-
     worksheet["!cols"] = [
 
-        { wch: 12 }, // Excel Row
-        { wch: 20 }, // Material Code
-        { wch: 20 }, // Department
-        { wch: 20 }, // Category
-        { wch: 35 }, // Material Name
-        { wch: 20 }, // Brand
-        { wch: 20 }, // Item Type
-        { wch: 18 }, // Item Size
-        { wch: 25 }, // Specification
-        { wch: 12 }, // Unit
-        { wch: 15 }, // Opening Stock
-        { wch: 15 }, // Minimum Stock
-        { wch: 25 }, // Rack Location
-        { wch: 15 }, // Unit Cost
-        { wch: 15 }, // GST Type
-        { wch: 10 }, // GST %
-        { wch: 40 }, // Description
-        { wch: 12 }, // Status
-        { wch: 60 }  // Failure Reason
+        { wch: 12 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 35 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 18 },
+        { wch: 25 },
+        { wch: 12 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 40 },
+        { wch: 12 },
+        { wch: 60 }
 
     ];
 
