@@ -85,6 +85,7 @@ function logout() {
     window.location.replace("index.html");
 
 }
+
 //====================================================
 // CHECK USER ACCESS
 // ROLE + SECTION PERMISSION
@@ -94,6 +95,7 @@ function checkUserAccess(allowedRoles = []) {
 
     const user =
         getCurrentUser();
+
 
     if (!user) {
         return false;
@@ -106,6 +108,7 @@ function checkUserAccess(allowedRoles = []) {
 
     if (
         String(user.role || "")
+            .trim()
             .toUpperCase() === "ADMIN"
     ) {
 
@@ -115,7 +118,91 @@ function checkUserAccess(allowedRoles = []) {
 
 
     // ==================================================
-    // ROLE ACCESS
+    // IDENTIFY CURRENT PAGE
+    // ==================================================
+
+    const fileName =
+        window.location.pathname
+            .split("/")
+            .pop()
+            .toLowerCase();
+
+
+    const sectionMap = {
+
+        "dashboard.html":
+            "dashboard",
+
+        "materials.html":
+            "material_master",
+
+        "material_request.html":
+            "raise_request",
+
+        "approvals.html":
+            "approvals",
+
+        "issue.html":
+            "issue_materials",
+
+        "return.html":
+            "returns",
+
+        "stock_entry.html":
+            "stock_entry",
+
+        "current_stock.html":
+            "current_stock",
+
+        "reports.html":
+            "reports",
+
+        "users.html":
+            "user_management"
+
+    };
+
+
+    const requiredSection =
+        sectionMap[fileName];
+
+
+    // ==================================================
+    // IF THIS IS A SECTION-CONTROLLED PAGE
+    // ==================================================
+
+    if (requiredSection) {
+
+        const permissions =
+            user.sectionPermissions || {};
+
+
+        if (
+            permissions[requiredSection] === true
+        ) {
+
+            return true;
+
+        }
+
+
+        // No permission
+        alert(
+            "Access Denied. You do not have permission to access this section."
+        );
+
+
+        window.location.href =
+            "dashboard.html";
+
+
+        return false;
+
+    }
+
+
+    // ==================================================
+    // FALLBACK ROLE CHECK
     // ==================================================
 
     if (
@@ -129,61 +216,11 @@ function checkUserAccess(allowedRoles = []) {
 
 
     // ==================================================
-    // SECTION PERMISSION ACCESS
-    // ==================================================
-    //
-    // Pages using:
-    //
-    // checkUserAccess(["SECTION:reports"])
-    //
-    // or
-    //
-    // checkUserAccess(["reports"])
-    //
-    // are supported.
-    // ==================================================
-
-    const sectionKey =
-        allowedRoles.find(
-            role =>
-                String(role)
-                    .toUpperCase()
-                    .startsWith("SECTION:")
-        );
-
-
-    if (sectionKey) {
-
-        const requestedSection =
-            String(sectionKey)
-                .substring(8)
-                .trim()
-                .toLowerCase();
-
-
-        const permissions =
-            user.sectionPermissions || {};
-
-
-        if (
-            permissions[
-                requestedSection
-            ] === true
-        ) {
-
-            return true;
-
-        }
-
-    }
-
-
-    // ==================================================
     // ACCESS DENIED
     // ==================================================
 
     alert(
-        `Access Denied. Your user account does not have permission for this section.`
+        "Access Denied. Your role does not have permission."
     );
 
 
