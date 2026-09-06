@@ -85,16 +85,114 @@ function logout() {
     window.location.replace("index.html");
 
 }
-function checkUserAccess(allowedRoles = []) {
-const user = getCurrentUser();
-if (!user) return false;
+//====================================================
+// CHECK USER ACCESS
+// ROLE + SECTION PERMISSION
+//====================================================
 
-if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-alert(`Access Denied. Your role (${user.role}) does not have permission.`);
-window.location.href = 'dashboard.html';
-return false;
-}
-return true;
+function checkUserAccess(allowedRoles = []) {
+
+    const user =
+        getCurrentUser();
+
+    if (!user) {
+        return false;
+    }
+
+
+    // ==================================================
+    // ADMIN HAS FULL ACCESS
+    // ==================================================
+
+    if (
+        String(user.role || "")
+            .toUpperCase() === "ADMIN"
+    ) {
+
+        return true;
+
+    }
+
+
+    // ==================================================
+    // ROLE ACCESS
+    // ==================================================
+
+    if (
+        allowedRoles.length > 0 &&
+        allowedRoles.includes(user.role)
+    ) {
+
+        return true;
+
+    }
+
+
+    // ==================================================
+    // SECTION PERMISSION ACCESS
+    // ==================================================
+    //
+    // Pages using:
+    //
+    // checkUserAccess(["SECTION:reports"])
+    //
+    // or
+    //
+    // checkUserAccess(["reports"])
+    //
+    // are supported.
+    // ==================================================
+
+    const sectionKey =
+        allowedRoles.find(
+            role =>
+                String(role)
+                    .toUpperCase()
+                    .startsWith("SECTION:")
+        );
+
+
+    if (sectionKey) {
+
+        const requestedSection =
+            String(sectionKey)
+                .substring(8)
+                .trim()
+                .toLowerCase();
+
+
+        const permissions =
+            user.sectionPermissions || {};
+
+
+        if (
+            permissions[
+                requestedSection
+            ] === true
+        ) {
+
+            return true;
+
+        }
+
+    }
+
+
+    // ==================================================
+    // ACCESS DENIED
+    // ==================================================
+
+    alert(
+        `Access Denied. Your user account does not have permission for this section.`
+    );
+
+
+    window.location.href =
+        "dashboard.html";
+
+
+    return false;
+
 }
 
 // Get status abdge
