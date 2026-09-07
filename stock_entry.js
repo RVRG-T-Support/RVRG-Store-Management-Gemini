@@ -83,167 +83,467 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 
 }
-// --- DYNAMIC ROWS & CALCULATIONS ---
+
+// ====================================================
+// DYNAMIC ROWS & CALCULATIONS
+// SEARCHABLE MATERIAL SELECTION
+// ====================================================
+
 function addRow(prefillData = null) {
+
     rowCount++;
-    const tbody = document.getElementById('stockEntryItems');
-    const tr = document.createElement('tr');
-    tr.id = `row-${rowCount}`;
+
+
+    const currentRow =
+        rowCount;
+
+
+    const tbody =
+        document.getElementById(
+            'stockEntryItems'
+        );
+
+
+    const tr =
+        document.createElement('tr');
+
+
+    tr.id =
+        `row-${currentRow}`;
+
+
+    // ==================================================
+    // BUILD MATERIAL OPTIONS
+    // ==================================================
 
     let optionsHtml =
-    '<option value="" selected disabled>Select Material...</option>';
-
-materialsData.forEach(mat => {
-
-    const deptName =
-        mat.departments?.department_name || "-";
-
-    const details = [
-
-        mat.material_code,
-        mat.material_name,
-        mat.brand,
-        mat.item_type,
-        mat.item_size,
-        mat.specification
-
-    ]
-    .filter(value =>
-        String(value ?? "").trim() !== ""
-    )
-    .join(" | ");
+        '<option value="" selected disabled>Select Material...</option>';
 
 
-    optionsHtml += `
-        <option value="${mat.id}">
-            ${escapeHtml(details)}
-        </option>
-    `;
+    materialsData.forEach(
+        mat => {
 
-});
+            const details = [
+
+                mat.material_code,
+                mat.material_name,
+                mat.brand,
+                mat.item_type,
+                mat.item_size,
+                mat.specification
+
+            ]
+            .filter(
+                value =>
+                    String(
+                        value ?? ""
+                    ).trim() !== ""
+            )
+            .join(" | ");
+
+
+            optionsHtml += `
+
+                <option
+                    value="${mat.id}"
+                    data-search="${escapeHtml(
+                        [
+                            mat.material_code,
+                            mat.material_name,
+                            mat.brand
+                        ]
+                        .filter(
+                            value =>
+                                String(
+                                    value ?? ""
+                                ).trim() !== ""
+                        )
+                        .join(" ")
+                    )}"
+                >
+                    ${escapeHtml(details)}
+                </option>
+
+            `;
+
+        }
+    );
+
+
+    // ==================================================
+    // CREATE ROW
+    // ==================================================
 
     tr.innerHTML = `
-        <td class="align-middle fw-bold text-muted">${rowCount}</td>
-        <td>
 
-    <select
-        class="form-select form-select-sm item-select"
-        required
-        id="material-${rowCount}">
-
-        ${optionsHtml}
-
-    </select>
-
-</td>
-        <td>
-    <input type="number"
-           class="form-control form-control-sm item-row-input mx-auto qty-input"
-           required
-           min="1"
-           id="qty-${rowCount}"
-           oninput="calculateRowTotal(${rowCount})">
-</td>
-
-<td class="align-middle text-center fw-bold"
-    id="unit-${rowCount}">
--
-</td>
-
-<td>
-    <input type="number"
-           step="0.01"
-           class="form-control form-control-sm item-row-input mx-auto price-input"
-           required
-           min="0"
-           id="price-${rowCount}"
-           oninput="calculateRowTotal(${rowCount})"
-           onkeydown="handleEnterKey(event, ${rowCount})">
-</td>
-
-<td>
-    <input type="number"
-           step="0.01"
-           class="form-control form-control-sm item-row-input mx-auto gst-input"
-           id="gst-${rowCount}"
-           value="${document.getElementById('gstType').value || 18}"
-           min="0"
-           max="100"
-           oninput="calculateRowTotal(${rowCount})"
-           onkeydown="handleEnterKey(event, ${rowCount})">
-</td>
-        <td class="align-middle fw-bold row-total" id="total-${rowCount}" data-value="0">₹ 0.00</td>
-        <td class="align-middle">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(${rowCount})" title="Remove">
-                <i class="fa-solid fa-trash"></i>
-            </button>
+        <td class="align-middle fw-bold text-muted">
+            ${currentRow}
         </td>
+
+
+        <td>
+
+            <!-- MATERIAL SEARCH -->
+
+            <input
+                type="text"
+                class="form-control form-control-sm mb-1 material-search"
+                id="material-search-${currentRow}"
+                placeholder="Search code / material / brand..."
+                autocomplete="off"
+            >
+
+
+            <!-- MATERIAL SELECT -->
+
+            <select
+                class="form-select form-select-sm item-select"
+                required
+                id="material-${currentRow}"
+            >
+
+                ${optionsHtml}
+
+            </select>
+
+        </td>
+
+
+        <td>
+
+            <input
+                type="number"
+                class="form-control form-control-sm item-row-input mx-auto qty-input"
+                required
+                min="1"
+                id="qty-${currentRow}"
+                oninput="calculateRowTotal(${currentRow})"
+            >
+
+        </td>
+
+
+        <td
+            class="align-middle text-center fw-bold"
+            id="unit-${currentRow}"
+        >
+            -
+        </td>
+
+
+        <td>
+
+            <input
+                type="number"
+                step="0.01"
+                class="form-control form-control-sm item-row-input mx-auto price-input"
+                required
+                min="0"
+                id="price-${currentRow}"
+                oninput="calculateRowTotal(${currentRow})"
+                onkeydown="handleEnterKey(event, ${currentRow})"
+            >
+
+        </td>
+
+
+        <td>
+
+            <input
+                type="number"
+                step="0.01"
+                class="form-control form-control-sm item-row-input mx-auto gst-input"
+                id="gst-${currentRow}"
+                value="${
+                    document.getElementById('gstType').value || 18
+                }"
+                min="0"
+                max="100"
+                oninput="calculateRowTotal(${currentRow})"
+                onkeydown="handleEnterKey(event, ${currentRow})"
+            >
+
+        </td>
+
+
+        <td
+            class="align-middle fw-bold row-total"
+            id="total-${currentRow}"
+            data-value="0"
+        >
+            ₹ 0.00
+        </td>
+
+
+        <td class="align-middle">
+
+            <button
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                onclick="removeRow(${currentRow})"
+                title="Remove"
+            >
+
+                <i class="fa-solid fa-trash"></i>
+
+            </button>
+
+        </td>
+
     `;
+
+
     tbody.appendChild(tr);
 
-    document
-    .getElementById(`material-${rowCount}`)
-    .addEventListener("change", function () {
 
-        const material = materialsData.find(
-            m => m.id == this.value
-        );
+    // ==================================================
+    // MATERIAL SELECT CHANGE
+    // ==================================================
 
-        document.getElementById(`unit-${rowCount}`).innerText =
-            material?.unit || "-";
-
-    });
-// If Excel data is passed in, auto-fill the row
-if (prefillData) {
-
-    const matMatch =
-        materialsData.find(
-            m =>
-                m.id == prefillData.Material_ID
+    const materialSelect =
+        document.getElementById(
+            `material-${currentRow}`
         );
 
 
-    if (matMatch) {
+    materialSelect.addEventListener(
+        "change",
+        function () {
 
-        const materialSelect =
+            const material =
+                materialsData.find(
+                    m =>
+                        m.id == this.value
+                );
+
+
             document.getElementById(
-                `material-${rowCount}`
+                `unit-${currentRow}`
+            ).innerText =
+                material?.unit || "-";
+
+
+            // Put selected material name in search box
+            // so the user can clearly see what was selected.
+
+            if (material) {
+
+                document.getElementById(
+                    `material-search-${currentRow}`
+                ).value =
+                    [
+                        material.material_code,
+                        material.material_name,
+                        material.brand
+                    ]
+                    .filter(
+                        value =>
+                            String(
+                                value ?? ""
+                            ).trim() !== ""
+                    )
+                    .join(" | ");
+
+            }
+
+        }
+    );
+
+
+    // ==================================================
+    // MATERIAL SEARCH
+    // ==================================================
+
+    const materialSearch =
+        document.getElementById(
+            `material-search-${currentRow}`
+        );
+
+
+    materialSearch.addEventListener(
+        "input",
+        function () {
+
+            filterMaterialOptions(
+                currentRow,
+                this.value
             );
 
-        materialSelect.value =
-            matMatch.id;
+        }
+    );
 
 
-        materialSelect.dispatchEvent(
-            new Event("change")
-        );
+    // ==================================================
+    // EXCEL PREFILL
+    // ==================================================
+
+    if (prefillData) {
+
+        const matMatch =
+            materialsData.find(
+                m =>
+                    m.id ==
+                    prefillData.Material_ID
+            );
+
+
+        if (matMatch) {
+
+            materialSelect.value =
+                matMatch.id;
+
+
+            materialSelect.dispatchEvent(
+                new Event("change")
+            );
+
+        }
 
 
         document.getElementById(
-            `unit-${rowCount}`
-        ).innerText =
-            matMatch.unit || "-";
+            `qty-${currentRow}`
+        ).value =
+            prefillData.Quantity || 0;
+
+
+        document.getElementById(
+            `price-${currentRow}`
+        ).value =
+            prefillData.Unit_Price || 0;
+
+
+        calculateRowTotal(
+            currentRow
+        );
 
     }
 
-
-    document.getElementById(
-        `qty-${rowCount}`
-    ).value =
-        prefillData.Quantity || 0;
+}
 
 
-    document.getElementById(
-        `price-${rowCount}`
-    ).value =
-        prefillData.Unit_Price || 0;
+// ====================================================
+// FILTER MATERIAL OPTIONS
+// SEARCH BY:
+// MATERIAL CODE
+// MATERIAL NAME
+// BRAND
+// ====================================================
+
+function filterMaterialOptions(
+    rowId,
+    searchText
+) {
+
+    const select =
+        document.getElementById(
+            `material-${rowId}`
+        );
 
 
-    calculateRowTotal(
-        rowCount
+    if (!select) {
+        return;
+    }
+
+
+    const search =
+        String(
+            searchText || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const options =
+        select.querySelectorAll(
+            "option"
+        );
+
+
+    options.forEach(
+        option => {
+
+            // Keep placeholder visible
+
+            if (!option.value) {
+
+                option.style.display =
+                    "";
+
+                return;
+
+            }
+
+
+            const searchableText =
+                String(
+                    option.dataset.search || ""
+                )
+                .toLowerCase();
+
+
+            if (
+                !search ||
+                searchableText.includes(
+                    search
+                )
+            ) {
+
+                option.style.display =
+                    "";
+
+            }
+            else {
+
+                option.style.display =
+                    "none";
+
+            }
+
+        }
     );
 
-}
+
+    // ------------------------------------------------
+    // If current selected material no longer matches,
+    // clear the selection.
+    // ------------------------------------------------
+
+    const selectedOption =
+        select.options[
+            select.selectedIndex
+        ];
+
+
+    if (
+        selectedOption &&
+        selectedOption.value
+    ) {
+
+        const selectedSearch =
+            String(
+                selectedOption.dataset.search || ""
+            )
+            .toLowerCase();
+
+
+        if (
+            search &&
+            !selectedSearch.includes(
+                search
+            )
+        ) {
+
+            select.value =
+                "";
+
+            document.getElementById(
+                `unit-${rowId}`
+            ).innerText =
+                "-";
+
+        }
+
+    }
 
 }
 
