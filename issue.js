@@ -660,10 +660,9 @@ window.processIssue = async function(
                 // ISSUE reduces stock
 
                 quantity:
-                    -Math.abs(
-                        issueQty
-                    ),
-
+    Math.abs(
+        issueQty
+    ),
                 reference_no:
                     newIssueId.toString(),
 
