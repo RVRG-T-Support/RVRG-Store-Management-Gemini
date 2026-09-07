@@ -827,8 +827,8 @@ function addRow(prefillData = null) {
 
 // ====================================================
 // SEARCH MATERIAL
-// SHOW 5 MATCHES AT ONCE
-// MORE RESULTS = SCROLL
+// DROPDOWN ESCAPES TABLE OVERFLOW
+// SHOW 5 RESULTS AT A TIME
 // SEARCH BY CODE + NAME + BRAND
 // ====================================================
 
@@ -842,9 +842,15 @@ function searchMaterials(
             `material-results-${rowId}`
         );
 
+    const searchInput =
+        document.getElementById(
+            `material-search-${rowId}`
+        );
 
-    if (!results)
+
+    if (!results || !searchInput) {
         return;
+    }
 
 
     const search =
@@ -863,7 +869,8 @@ function searchMaterials(
 
         results.innerHTML = "";
 
-        results.style.display = "none";
+        results.style.display =
+            "none";
 
         return;
 
@@ -931,10 +938,9 @@ function searchMaterials(
 
             <div
                 style="
-                    display:block;
-                    padding:10px 12px;
-                    color:#6c757d;
+                    padding:9px 12px;
                     background:#fff;
+                    color:#6c757d;
                     font-size:13px;
                 "
             >
@@ -946,177 +952,274 @@ function searchMaterials(
         results.style.display =
             "block";
 
-        return;
+    }
+    else {
+
+        // Clear old results
+
+        results.innerHTML = "";
+
+
+        // ==================================================
+        // MOVE DROPDOWN TO BODY
+        // THIS PREVENTS TABLE OVERFLOW FROM CLIPPING IT
+        // ==================================================
+
+        if (
+            results.parentElement !==
+            document.body
+        ) {
+
+            document.body.appendChild(
+                results
+            );
+
+        }
+
+
+        // ==================================================
+        // FIXED POSITION
+        // ==================================================
+
+        const rect =
+            searchInput.getBoundingClientRect();
+
+
+        results.style.position =
+            "fixed";
+
+
+        results.style.left =
+            `${rect.left}px`;
+
+
+        results.style.top =
+            `${rect.bottom + 2}px`;
+
+
+        results.style.width =
+            `${rect.width}px`;
+
+
+        results.style.minWidth =
+            `${rect.width}px`;
+
+
+        results.style.maxHeight =
+            "180px";
+
+
+        results.style.overflowY =
+            "auto";
+
+
+        results.style.overflowX =
+            "hidden";
+
+
+        results.style.background =
+            "#ffffff";
+
+
+        results.style.border =
+            "1px solid #ced4da";
+
+
+        results.style.borderRadius =
+            "4px";
+
+
+        results.style.boxShadow =
+            "0 4px 12px rgba(0,0,0,0.18)";
+
+
+        results.style.zIndex =
+            "2147483647";
+
+
+        results.style.display =
+            "block";
+
+
+        // ==================================================
+        // CREATE RESULT ITEMS
+        // ==================================================
+
+        matches.forEach(
+            material => {
+
+                const option =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                option.className =
+                    "material-search-option";
+
+
+                option.style.display =
+                    "block";
+
+
+                option.style.width =
+                    "100%";
+
+
+                option.style.boxSizing =
+                    "border-box";
+
+
+                option.style.padding =
+                    "9px 12px";
+
+
+                option.style.background =
+                    "#ffffff";
+
+
+                option.style.color =
+                    "#212529";
+
+
+                option.style.fontSize =
+                    "13px";
+
+
+                option.style.lineHeight =
+                    "1.35";
+
+
+                option.style.whiteSpace =
+                    "nowrap";
+
+
+                option.style.overflow =
+                    "hidden";
+
+
+                option.style.textOverflow =
+                    "ellipsis";
+
+
+                option.style.cursor =
+                    "pointer";
+
+
+                option.style.borderBottom =
+                    "1px solid #eeeeee";
+
+
+                option.textContent = [
+
+                    material.material_code,
+                    material.material_name,
+                    material.brand
+
+                ]
+                .filter(
+                    value =>
+                        String(
+                            value ?? ""
+                        ).trim() !== ""
+                )
+                .join(" | ");
+
+
+                // ------------------------------------------
+                // HOVER
+                // ------------------------------------------
+
+                option.addEventListener(
+                    "mouseenter",
+                    function() {
+
+                        this.style.background =
+                            "#f1f7ff";
+
+                    }
+                );
+
+
+                option.addEventListener(
+                    "mouseleave",
+                    function() {
+
+                        this.style.background =
+                            "#ffffff";
+
+                    }
+                );
+
+
+                // ------------------------------------------
+                // SELECT
+                // ------------------------------------------
+
+                option.addEventListener(
+                    "click",
+                    function() {
+
+                        selectMaterial(
+                            rowId,
+                            material
+                        );
+
+                    }
+                );
+
+
+                results.appendChild(
+                    option
+                );
+
+            }
+        );
 
     }
 
 
     // ==================================================
-    // BUILD RESULT LIST
+    // POSITION AGAIN
     // ==================================================
 
-    results.innerHTML = "";
+    const rect =
+        searchInput.getBoundingClientRect();
 
 
-    // Show approximately 5 rows.
-    // If more exist, the container scrolls.
+    let top =
+        rect.bottom + 2;
+
+
+    // If there isn't enough space below,
+    // show the list above the search field.
+
+    if (
+        top + 180 >
+        window.innerHeight
+    ) {
+
+        top =
+            rect.top - 182;
+
+    }
+
+
+    results.style.left =
+        `${rect.left}px`;
+
+
+    results.style.top =
+        `${top}px`;
+
+
+    results.style.width =
+        `${rect.width}px`;
+
 
     results.style.maxHeight =
-        "220px";
+        "180px";
 
-    results.style.overflowY =
-        "auto";
-
-    results.style.overflowX =
-        "hidden";
-
-    results.style.background =
-        "#ffffff";
-
-    results.style.border =
-        "1px solid #ced4da";
-
-    results.style.borderRadius =
-        "4px";
-
-    results.style.boxShadow =
-        "0 4px 10px rgba(0,0,0,0.15)";
-
-    results.style.zIndex =
-        "9999";
-
-
-    matches.forEach(
-        material => {
-
-            const option =
-                document.createElement(
-                    "div"
-                );
-
-
-            option.className =
-                "material-search-option";
-
-
-            option.style.display =
-                "block";
-
-
-            option.style.width =
-                "100%";
-
-
-            option.style.boxSizing =
-                "border-box";
-
-
-            option.style.padding =
-                "9px 12px";
-
-
-            option.style.background =
-                "#ffffff";
-
-
-            option.style.color =
-                "#212529";
-
-
-            option.style.fontSize =
-                "13px";
-
-
-            option.style.lineHeight =
-                "1.4";
-
-
-            option.style.whiteSpace =
-                "normal";
-
-
-            option.style.wordBreak =
-                "break-word";
-
-
-            option.style.cursor =
-                "pointer";
-
-
-            option.style.borderBottom =
-                "1px solid #eeeeee";
-
-
-            option.textContent = [
-
-                material.material_code,
-                material.material_name,
-                material.brand
-
-            ]
-            .filter(
-                value =>
-                    String(
-                        value ?? ""
-                    ).trim() !== ""
-            )
-            .join(" | ");
-
-
-            // ==========================================
-            // HOVER EFFECT
-            // ==========================================
-
-            option.addEventListener(
-                "mouseenter",
-                function() {
-
-                    this.style.background =
-                        "#f1f7ff";
-
-                }
-            );
-
-
-            option.addEventListener(
-                "mouseleave",
-                function() {
-
-                    this.style.background =
-                        "#ffffff";
-
-                }
-            );
-
-
-            // ==========================================
-            // SELECT MATERIAL
-            // ==========================================
-
-            option.addEventListener(
-                "click",
-                function() {
-
-                    selectMaterial(
-                        rowId,
-                        material
-                    );
-
-                }
-            );
-
-
-            results.appendChild(
-                option
-            );
-
-        }
-    );
-
-
-    // ==================================================
-    // SHOW RESULT BOX
-    // ==================================================
 
     results.style.display =
         "block";
