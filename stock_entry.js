@@ -582,12 +582,13 @@ function addRow(prefillData = null) {
         </td>
 
 
-        <td
-            style="
-                position:relative;
-                min-width:320px;
-            "
-        >
+       <td
+    style="
+        position:relative;
+        min-width:320px;
+        z-index:100;
+    "
+>
 
             <input
                 type="text"
@@ -826,7 +827,9 @@ function addRow(prefillData = null) {
 
 // ====================================================
 // SEARCH MATERIAL
-// CODE + NAME + BRAND
+// SHOW 5 MATCHES AT ONCE
+// MORE RESULTS = SCROLL
+// SEARCH BY CODE + NAME + BRAND
 // ====================================================
 
 function searchMaterials(
@@ -852,58 +855,73 @@ function searchMaterials(
         .toLowerCase();
 
 
-    // Nothing typed
+    // ==================================================
+    // NOTHING TYPED
+    // ==================================================
+
     if (!search) {
 
-        results.innerHTML =
-            "";
+        results.innerHTML = "";
 
-        results.style.display =
-            "none";
+        results.style.display = "none";
 
         return;
 
     }
 
 
+    // ==================================================
+    // FIND MATCHING MATERIALS
+    // ==================================================
+
     const matches =
-        materialsData.filter(
-            material => {
+        materialsData
+            .filter(
+                material => {
 
-                const code =
-                    String(
-                        material.material_code || ""
-                    ).toLowerCase();
-
-                const name =
-                    String(
-                        material.material_name || ""
-                    ).toLowerCase();
-
-                const brand =
-                    String(
-                        material.brand || ""
-                    ).toLowerCase();
+                    const code =
+                        String(
+                            material.material_code || ""
+                        )
+                        .toLowerCase();
 
 
-                return (
+                    const name =
+                        String(
+                            material.material_name || ""
+                        )
+                        .toLowerCase();
 
-                    code.includes(search)
 
-                    ||
+                    const brand =
+                        String(
+                            material.brand || ""
+                        )
+                        .toLowerCase();
 
-                    name.includes(search)
 
-                    ||
+                    return (
 
-                    brand.includes(search)
+                        code.includes(search)
 
-                );
+                        ||
 
-            }
-        )
-        .slice(0, 30);
+                        name.includes(search)
 
+                        ||
+
+                        brand.includes(search)
+
+                    );
+
+                }
+            )
+            .slice(0, 50);
+
+
+    // ==================================================
+    // NO MATCH
+    // ==================================================
 
     if (
         matches.length === 0
@@ -912,7 +930,13 @@ function searchMaterials(
         results.innerHTML = `
 
             <div
-                class="px-3 py-2 text-muted"
+                style="
+                    display:block;
+                    padding:10px 12px;
+                    color:#6c757d;
+                    background:#fff;
+                    font-size:13px;
+                "
             >
                 No matching material found.
             </div>
@@ -927,97 +951,175 @@ function searchMaterials(
     }
 
 
-    results.innerHTML =
-        matches.map(
-            material => {
+    // ==================================================
+    // BUILD RESULT LIST
+    // ==================================================
 
-                const details = [
-
-                    material.material_code,
-                    material.material_name,
-                    material.brand
-
-                ]
-                .filter(
-                    value =>
-                        String(
-                            value ?? ""
-                        ).trim() !== ""
-                )
-                .join(" | ");
+    results.innerHTML = "";
 
 
-                return `
+    // Show approximately 5 rows.
+    // If more exist, the container scrolls.
 
-                    <div
-                        class="material-search-option"
-                        data-material-id="${material.id}"
-                        style="
-                            padding:8px 12px;
-                            cursor:pointer;
-                            border-bottom:1px solid #eee;
-                            font-size:13px;
-                        "
-                    >
-                        ${escapeHtml(details)}
-                    </div>
+    results.style.maxHeight =
+        "220px";
 
-                `;
+    results.style.overflowY =
+        "auto";
 
-            }
-        )
-        .join("");
+    results.style.overflowX =
+        "hidden";
 
+    results.style.background =
+        "#ffffff";
+
+    results.style.border =
+        "1px solid #ced4da";
+
+    results.style.borderRadius =
+        "4px";
+
+    results.style.boxShadow =
+        "0 4px 10px rgba(0,0,0,0.15)";
+
+    results.style.zIndex =
+        "9999";
+
+
+    matches.forEach(
+        material => {
+
+            const option =
+                document.createElement(
+                    "div"
+                );
+
+
+            option.className =
+                "material-search-option";
+
+
+            option.style.display =
+                "block";
+
+
+            option.style.width =
+                "100%";
+
+
+            option.style.boxSizing =
+                "border-box";
+
+
+            option.style.padding =
+                "9px 12px";
+
+
+            option.style.background =
+                "#ffffff";
+
+
+            option.style.color =
+                "#212529";
+
+
+            option.style.fontSize =
+                "13px";
+
+
+            option.style.lineHeight =
+                "1.4";
+
+
+            option.style.whiteSpace =
+                "normal";
+
+
+            option.style.wordBreak =
+                "break-word";
+
+
+            option.style.cursor =
+                "pointer";
+
+
+            option.style.borderBottom =
+                "1px solid #eeeeee";
+
+
+            option.textContent = [
+
+                material.material_code,
+                material.material_name,
+                material.brand
+
+            ]
+            .filter(
+                value =>
+                    String(
+                        value ?? ""
+                    ).trim() !== ""
+            )
+            .join(" | ");
+
+
+            // ==========================================
+            // HOVER EFFECT
+            // ==========================================
+
+            option.addEventListener(
+                "mouseenter",
+                function() {
+
+                    this.style.background =
+                        "#f1f7ff";
+
+                }
+            );
+
+
+            option.addEventListener(
+                "mouseleave",
+                function() {
+
+                    this.style.background =
+                        "#ffffff";
+
+                }
+            );
+
+
+            // ==========================================
+            // SELECT MATERIAL
+            // ==========================================
+
+            option.addEventListener(
+                "click",
+                function() {
+
+                    selectMaterial(
+                        rowId,
+                        material
+                    );
+
+                }
+            );
+
+
+            results.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    // ==================================================
+    // SHOW RESULT BOX
+    // ==================================================
 
     results.style.display =
         "block";
-
-
-    // ==================================================
-    // RESULT CLICK
-    // ==================================================
-
-    results
-        .querySelectorAll(
-            ".material-search-option"
-        )
-        .forEach(
-            option => {
-
-                option.addEventListener(
-                    "click",
-                    function() {
-
-                        const materialId =
-                            this.dataset.materialId;
-
-
-                        const material =
-                            materialsData.find(
-                                m =>
-                                    String(
-                                        m.id
-                                    ) ===
-                                    String(
-                                        materialId
-                                    )
-                            );
-
-
-                        if (material) {
-
-                            selectMaterial(
-                                rowId,
-                                material
-                            );
-
-                        }
-
-                    }
-                );
-
-            }
-        );
 
 }
 
