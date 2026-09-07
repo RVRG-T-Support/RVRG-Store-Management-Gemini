@@ -264,24 +264,118 @@ function handleEnterKey(event, currentId) {
 }
 
 function calculateRowTotal(id) {
-    const qty = parseFloat(document.getElementById(`qty-${id}`).value) || 0;
-    const price = parseFloat(document.getElementById(`price-${id}`).value) || 0;
-    const total = qty * price;
-    
-    document.getElementById(`total-${id}`).dataset.value = total;
-    document.getElementById(`total-${id}`).innerText = formatCurrency(total);
+
+    const qty =
+        parseFloat(
+            document.getElementById(`qty-${id}`).value
+        ) || 0;
+
+
+    const price =
+        parseFloat(
+            document.getElementById(`price-${id}`).value
+        ) || 0;
+
+
+    const gstPercentage =
+        parseFloat(
+            document.getElementById(`gst-${id}`).value
+        ) || 0;
+
+
+    // --------------------------------------------
+    // BASIC MATERIAL VALUE
+    // --------------------------------------------
+
+    const basicAmount =
+        qty * price;
+
+
+    // --------------------------------------------
+    // GST CALCULATION
+    // --------------------------------------------
+
+    const gstAmount =
+        basicAmount *
+        gstPercentage /
+        100;
+
+
+    // --------------------------------------------
+    // FINAL ROW TOTAL
+    // BASIC + GST
+    // --------------------------------------------
+
+    const total =
+        basicAmount +
+        gstAmount;
+
+
+    const totalCell =
+        document.getElementById(
+            `total-${id}`
+        );
+
+
+    totalCell.dataset.value =
+        total;
+
+
+    totalCell.innerText =
+        formatCurrency(
+            total
+        );
+
+
     calculateGrandTotal();
+
 }
 
 function calculateGrandTotal() {
+
     let itemTotal = 0;
-    document.querySelectorAll('.row-total').forEach(td => {
-        itemTotal += parseFloat(td.dataset.value) || 0;
-    });
-    const transport = parseFloat(document.getElementById('transportationCost').value) || 0;
-    const grandTotal = itemTotal + transport;
-    document.getElementById('calculatedTotalDisplay').dataset.value = grandTotal;
-    document.getElementById('calculatedTotalDisplay').innerText = formatCurrency(grandTotal);
+
+
+    document
+        .querySelectorAll('.row-total')
+        .forEach(td => {
+
+            itemTotal +=
+                parseFloat(
+                    td.dataset.value
+                ) || 0;
+
+        });
+
+
+    const transport =
+        parseFloat(
+            document.getElementById(
+                'transportationCost'
+            ).value
+        ) || 0;
+
+
+    const grandTotal =
+        itemTotal +
+        transport;
+
+
+    const totalDisplay =
+        document.getElementById(
+            'calculatedTotalDisplay'
+        );
+
+
+    totalDisplay.dataset.value =
+        grandTotal;
+
+
+    totalDisplay.innerText =
+        formatCurrency(
+            grandTotal
+        );
+
 }
 
 // --- EXCEL BULK UPLOAD LOGIC ---
