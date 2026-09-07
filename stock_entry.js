@@ -1045,138 +1045,172 @@ function searchMaterials(
         // CREATE RESULT ITEMS
         // ==================================================
 
-        matches.forEach(
-            material => {
+matches.forEach(
+    material => {
 
-                const option =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                option.className =
-                    "material-search-option";
+        const option =
+            document.createElement(
+                "div"
+            );
 
 
-                option.style.display =
-                    "block";
+        option.className =
+            "material-search-option";
 
 
-                option.style.width =
-                    "100%";
+        option.style.display =
+            "block";
 
 
-                option.style.boxSizing =
-                    "border-box";
+        option.style.width =
+            "100%";
 
 
-                option.style.padding =
-                    "9px 12px";
+        option.style.boxSizing =
+            "border-box";
 
 
-                option.style.background =
+        option.style.padding =
+            "8px 12px";
+
+
+        option.style.background =
+            "#ffffff";
+
+
+        option.style.color =
+            "#212529";
+
+
+        option.style.fontSize =
+            "13px";
+
+
+        option.style.lineHeight =
+            "1.35";
+
+
+        option.style.cursor =
+            "pointer";
+
+
+        option.style.borderBottom =
+            "1px solid #eeeeee";
+
+
+        // ==================================================
+        // BUILD SAME DETAILS STYLE AS CURRENT STOCK
+        // ==================================================
+
+        const materialDetails = [
+
+            `Category: ${
+                material.category || "-"
+            }`,
+
+            `Brand: ${
+                material.brand || "-"
+            }`,
+
+            `Type: ${
+                material.item_type || "-"
+            }`,
+
+            `Size: ${
+                material.item_size || "-"
+            }`,
+
+            `Specification: ${
+                material.specification || "-"
+            }`
+
+        ].join(" | ");
+
+
+        option.innerHTML = `
+
+            <div
+                style="
+                    font-weight:600;
+                    color:#212529;
+                    margin-bottom:3px;
+                "
+            >
+                ${escapeHtml(
+                    material.material_code || "-"
+                )}
+                |
+                ${escapeHtml(
+                    material.material_name || "-"
+                )}
+            </div>
+
+
+            <div
+                style="
+                    font-size:11px;
+                    color:#6c757d;
+                    white-space:normal;
+                    line-height:1.35;
+                "
+            >
+                ${escapeHtml(
+                    materialDetails
+                )}
+            </div>
+
+        `;
+
+
+        // ==================================================
+        // HOVER
+        // ==================================================
+
+        option.addEventListener(
+            "mouseenter",
+            function() {
+
+                this.style.background =
+                    "#f1f7ff";
+
+            }
+        );
+
+
+        option.addEventListener(
+            "mouseleave",
+            function() {
+
+                this.style.background =
                     "#ffffff";
 
-
-                option.style.color =
-                    "#212529";
-
-
-                option.style.fontSize =
-                    "13px";
+            }
+        );
 
 
-                option.style.lineHeight =
-                    "1.35";
+        // ==================================================
+        // SELECT MATERIAL
+        // ==================================================
 
+        option.addEventListener(
+            "click",
+            function() {
 
-                option.style.whiteSpace =
-                    "nowrap";
-
-
-                option.style.overflow =
-                    "hidden";
-
-
-                option.style.textOverflow =
-                    "ellipsis";
-
-
-                option.style.cursor =
-                    "pointer";
-
-
-                option.style.borderBottom =
-                    "1px solid #eeeeee";
-
-
-                option.textContent = [
-
-                    material.material_code,
-                    material.material_name,
-                    material.brand
-
-                ]
-                .filter(
-                    value =>
-                        String(
-                            value ?? ""
-                        ).trim() !== ""
-                )
-                .join(" | ");
-
-
-                // ------------------------------------------
-                // HOVER
-                // ------------------------------------------
-
-                option.addEventListener(
-                    "mouseenter",
-                    function() {
-
-                        this.style.background =
-                            "#f1f7ff";
-
-                    }
-                );
-
-
-                option.addEventListener(
-                    "mouseleave",
-                    function() {
-
-                        this.style.background =
-                            "#ffffff";
-
-                    }
-                );
-
-
-                // ------------------------------------------
-                // SELECT
-                // ------------------------------------------
-
-                option.addEventListener(
-                    "click",
-                    function() {
-
-                        selectMaterial(
-                            rowId,
-                            material
-                        );
-
-                    }
-                );
-
-
-                results.appendChild(
-                    option
+                selectMaterial(
+                    rowId,
+                    material
                 );
 
             }
         );
 
+
+        results.appendChild(
+            option
+        );
+
     }
+);
 
 
     // ==================================================
