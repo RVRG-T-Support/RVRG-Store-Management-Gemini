@@ -680,23 +680,37 @@ function addRow(prefillData = null) {
         </td>
 
 
-        <td>
+        <td class="align-middle">
 
-            <input
-                type="number"
-                step="0.01"
-                class="form-control form-control-sm item-row-input mx-auto gst-input"
-                id="gst-${currentRow}"
-                value="${
-                    document.getElementById("gstType").value || 18
-                }"
-                min="0"
-                max="100"
-                oninput="calculateRowTotal(${currentRow})"
-                onkeydown="handleEnterKey(event, ${currentRow})"
-            >
+    <!-- Calculated GST Amount -->
 
-        </td>
+    <div
+        class="fw-bold gst-amount"
+        id="gst-amount-${currentRow}"
+    >
+        ₹ 0.00
+    </div>
+
+
+    <!-- Manual GST Percentage -->
+
+    <input
+        type="number"
+        step="0.01"
+        class="form-control form-control-sm gst-input mt-1 mx-auto"
+        id="gst-${currentRow}"
+        value="${
+            document.getElementById("gstType").value || 18
+        }"
+        min="0"
+        max="100"
+        style="max-width:75px; font-size:11px;"
+        title="GST Percentage"
+        oninput="calculateRowTotal(${currentRow})"
+        onkeydown="handleEnterKey(event, ${currentRow})"
+    >
+
+</td>
 
 
         <td
@@ -1374,10 +1388,10 @@ function calculateRowTotal(id) {
 
 
     // --------------------------------------------
-    // ITEM PRICE
+    // ITEM VALUE
     // --------------------------------------------
 
-    const basicAmount =
+    const itemValue =
         qty * price;
 
 
@@ -1386,22 +1400,22 @@ function calculateRowTotal(id) {
     // --------------------------------------------
 
     const gstAmount =
-        basicAmount *
+        itemValue *
         gstPercentage /
         100;
 
 
     // --------------------------------------------
-    // FINAL TOTAL
+    // TOTAL = ITEM + GST
     // --------------------------------------------
 
     const total =
-        basicAmount +
+        itemValue +
         gstAmount;
 
 
     // --------------------------------------------
-    // DISPLAY GST AMOUNT
+    // SHOW GST AMOUNT
     // --------------------------------------------
 
     const gstAmountCell =
@@ -1421,7 +1435,7 @@ function calculateRowTotal(id) {
 
 
     // --------------------------------------------
-    // DISPLAY TOTAL
+    // SHOW FINAL TOTAL
     // --------------------------------------------
 
     const totalCell =
@@ -1439,6 +1453,10 @@ function calculateRowTotal(id) {
             total
         );
 
+
+    // --------------------------------------------
+    // UPDATE GRAND TOTAL
+    // --------------------------------------------
 
     calculateGrandTotal();
 
