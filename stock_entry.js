@@ -246,25 +246,33 @@ function addRow(prefillData = null) {
 
         </td>
 
+<td class="align-middle">
 
-        <td>
+    <div
+        class="fw-bold gst-amount"
+        id="gst-amount-${currentRow}"
+    >
+        ₹ 0.00
+    </div>
 
-            <input
-                type="number"
-                step="0.01"
-                class="form-control form-control-sm item-row-input mx-auto gst-input"
-                id="gst-${currentRow}"
-                value="${
-                    document.getElementById('gstType').value || 18
-                }"
-                min="0"
-                max="100"
-                oninput="calculateRowTotal(${currentRow})"
-                onkeydown="handleEnterKey(event, ${currentRow})"
-            >
 
-        </td>
+    <input
+        type="number"
+        step="0.01"
+        class="form-control form-control-sm gst-input mt-1 mx-auto"
+        id="gst-${currentRow}"
+        value="${
+            document.getElementById("gstType").value || 18
+        }"
+        min="0"
+        max="100"
+        style="max-width:75px; font-size:11px;"
+        title="GST Percentage"
+        oninput="calculateRowTotal(${currentRow})"
+        onkeydown="handleEnterKey(event, ${currentRow})"
+    >
 
+</td>
 
         <td
             class="align-middle fw-bold row-total"
@@ -1343,24 +1351,30 @@ function calculateRowTotal(id) {
 
     const qty =
         parseFloat(
-            document.getElementById(`qty-${id}`).value
+            document.getElementById(
+                `qty-${id}`
+            ).value
         ) || 0;
 
 
     const price =
         parseFloat(
-            document.getElementById(`price-${id}`).value
+            document.getElementById(
+                `price-${id}`
+            ).value
         ) || 0;
 
 
     const gstPercentage =
         parseFloat(
-            document.getElementById(`gst-${id}`).value
+            document.getElementById(
+                `gst-${id}`
+            ).value
         ) || 0;
 
 
     // --------------------------------------------
-    // BASIC MATERIAL VALUE
+    // ITEM PRICE
     // --------------------------------------------
 
     const basicAmount =
@@ -1368,7 +1382,7 @@ function calculateRowTotal(id) {
 
 
     // --------------------------------------------
-    // GST CALCULATION
+    // GST AMOUNT
     // --------------------------------------------
 
     const gstAmount =
@@ -1378,14 +1392,37 @@ function calculateRowTotal(id) {
 
 
     // --------------------------------------------
-    // FINAL ROW TOTAL
-    // BASIC + GST
+    // FINAL TOTAL
     // --------------------------------------------
 
     const total =
         basicAmount +
         gstAmount;
 
+
+    // --------------------------------------------
+    // DISPLAY GST AMOUNT
+    // --------------------------------------------
+
+    const gstAmountCell =
+        document.getElementById(
+            `gst-amount-${id}`
+        );
+
+
+    if (gstAmountCell) {
+
+        gstAmountCell.innerText =
+            formatCurrency(
+                gstAmount
+            );
+
+    }
+
+
+    // --------------------------------------------
+    // DISPLAY TOTAL
+    // --------------------------------------------
 
     const totalCell =
         document.getElementById(
