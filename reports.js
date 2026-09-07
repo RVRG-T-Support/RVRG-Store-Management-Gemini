@@ -1027,11 +1027,13 @@ async function fetchPurchaseData(
             .select(`
                 quantity,
                 purchase_price,
+                gst_percentage,
                 line_total,
 
                 stock_entry_header!inner(
                     invoice_no,
-                    invoice_date
+                    invoice_date,
+                    created_by
                 ),
 
                 materials!stock_entry_details_material_id_fkey(
@@ -1079,6 +1081,10 @@ async function fetchPurchaseData(
         data || [];
 
 
+    // ==================================================
+    // DEPARTMENT FILTER
+    // ==================================================
+
     if (
         departmentName !== "ALL"
     ) {
@@ -1095,42 +1101,177 @@ async function fetchPurchaseData(
     }
 
 
+    // ==================================================
+    // LOAD USERS
+    // ==================================================
+
+    const createdByIds =
+        [
+            ...new Set(
+                filtered
+                    .map(
+                        row =>
+                            row.stock_entry_header
+                                ?.created_by
+                    )
+                    .filter(
+                        id =>
+                            id !== null &&
+                            id !== undefined
+                    )
+            )
+        ];
+
+
+    let userMap = {};
+
+
+    if (
+        createdByIds.length > 0
+    ) {
+
+        const {
+            data: users,
+            error: usersError
+        } = await supabase
+
+            .from(
+                "users_master"
+            )
+
+            .select(
+                "id, full_name"
+            )
+
+            .in(
+                "id",
+                createdByIds
+            );
+
+
+        if (usersError)
+            throw usersError;
+
+
+        (users || []).forEach(
+            user => {
+
+                userMap[
+                    user.id
+                ] =
+                    user.full_name || "-";
+
+            }
+        );
+
+    }
+
+
+    // ==================================================
+    // BUILD REPORT ROWS
+    // ==================================================
+
     return filtered.map(
-        row => ({
+        row => {
 
-            date:
+            const header =
                 row.stock_entry_header
-                    .invoice_date,
+                || {};
 
-            reference:
-                row.stock_entry_header
-                    .invoice_no,
 
-            material:
-                row.materials
-                    ?.material_name
-                || "-",
-
-            department:
-                row.materials
-                    ?.departments
-                    ?.department_name
-                || "-",
-
-            area:
-                "Stock Purchase",
-
-            quantity:
+            const quantity =
                 Number(
                     row.quantity || 0
-                ),
+                );
 
-            value:
+
+            const unitPrice =
                 Number(
-                    row.line_total || 0
-                )
+                    row.purchase_price || 0
+                );
 
-        })
+
+            const gstPercentage =
+                Number(
+                    row.gst_percentage || 0
+                );
+
+
+            // ------------------------------------------
+            // BASIC MATERIAL VALUE
+            // ------------------------------------------
+
+            const basicAmount =
+                quantity *
+                unitPrice;
+
+
+            // ------------------------------------------
+            // GST
+            // ------------------------------------------
+
+            const gstAmount =
+                basicAmount *
+                gstPercentage /
+                100;
+
+
+            // ------------------------------------------
+            // FINAL REPORT VALUE
+            // BASIC + GST
+            // ------------------------------------------
+
+            const finalAmount =
+                basicAmount +
+                gstAmount;
+
+
+            return {
+
+                date:
+                    header.invoice_date,
+
+                reference:
+                    header.invoice_no
+                    || "-",
+
+                material:
+                    row.materials
+                        ?.material_name
+                    || "-",
+
+                department:
+                    row.materials
+                        ?.departments
+                        ?.department_name
+                    || "-",
+
+                area:
+                    "Stock Purchase",
+
+                quantity:
+                    quantity,
+
+                value:
+                    Number(
+                        finalAmount.toFixed(2)
+                    ),
+
+                requestedBy:
+                    userMap[
+                        header.created_by
+                    ]
+                    || "-",
+
+                approvedBy:
+                    "-",
+
+                issuedBy:
+                    "-"
+
+            };
+
+        }
     );
 
 }
