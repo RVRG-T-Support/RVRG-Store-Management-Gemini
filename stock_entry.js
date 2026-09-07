@@ -887,16 +887,40 @@ if (price <= 0) {
     throw new Error("Unit Price must be greater than zero.");
 }
 
-const amount = qty * price;
+const basicAmount =
+    qty * price;
+
+
+// --------------------------------------------
+// GST CALCULATION
+// --------------------------------------------
+
+const gstAmount =
+    basicAmount *
+    gstPercentage /
+    100;
+
+
+// --------------------------------------------
+// FINAL LINE TOTAL
+// BASIC + GST
+// --------------------------------------------
+
+const lineTotal =
+    basicAmount +
+    gstAmount;
+
 
 detailsArray.push({
     stock_entry_id: entryId,
     material_id: Number(materialId),
     quantity: qty,
     purchase_price: price,
-    gst_type: "INCLUDED",
+    gst_type: "EXCLUDED",
     gst_percentage: gstPercentage,
-    line_total: amount
+    line_total: Number(
+        lineTotal.toFixed(2)
+    )
 });
 
     ledgerArray.push({
