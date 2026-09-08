@@ -1001,10 +1001,11 @@ function startNotificationRealtime() {
 
                     await loadNotifications();
 
+playNotificationSound();
 
-                    showNotificationToast(
-                        payload.new
-                    );
+showNotificationToast(
+    payload.new
+);
 
                 }
             )
@@ -1205,6 +1206,50 @@ function openNotificationTarget(
 
 }
 
+// ====================================================
+// NOTIFICATION SOUND
+// ====================================================
+
+let notificationAudio = null;
+
+function playNotificationSound() {
+
+    try {
+
+        if (!notificationAudio) {
+
+            notificationAudio =
+                new Audio("notification.mp3");
+
+            notificationAudio.volume =
+                0.65;
+
+        }
+
+        notificationAudio.currentTime =
+            0;
+
+        notificationAudio.play()
+            .catch(error => {
+
+                console.warn(
+                    "Notification sound blocked:",
+                    error
+                );
+
+            });
+
+    }
+    catch(error) {
+
+        console.error(
+            "Notification sound error:",
+            error
+        );
+
+    }
+
+}
 
 // ====================================================
 // NOTIFICATION TOAST
