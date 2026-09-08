@@ -451,7 +451,32 @@ function renderHeader() {
 </div>
 
         </div>
+<div
+    class="px-3 py-2 border-top"
+    style="font-size:12px;"
+>
 
+    <div
+        class="d-flex justify-content-between align-items-center"
+    >
+
+        <span>
+            <i class="fa-solid fa-desktop me-1"></i>
+            Desktop notifications
+        </span>
+
+        <button
+            type="button"
+            id="desktopNotificationButton"
+            class="btn btn-sm btn-outline-secondary"
+            onclick="toggleDesktopNotifications()"
+        >
+            OFF
+        </button>
+
+    </div>
+
+</div>
 
         <div
             id="notificationList"
@@ -533,6 +558,7 @@ if (!user) {
 }
     
 updateNotificationVolumeDisplay();
+    updateDesktopNotificationButton();
     
 // Unlock browser audio after first user interaction
 document.addEventListener(
@@ -1066,6 +1092,10 @@ showNotificationToast(
     payload.new
 );
 
+showDesktopNotification(
+    payload.new
+);
+
                 }
             )
 
@@ -1433,6 +1463,250 @@ function unlockNotificationAudio() {
 
 }
 
+// ====================================================
+// DESKTOP NOTIFICATIONS
+// ====================================================
+
+let desktopNotificationsEnabled =
+    localStorage.getItem(
+        "RVRG_DESKTOP_NOTIFICATIONS"
+    ) !== "false";
+
+
+// ====================================================
+// UPDATE DESKTOP BUTTON
+// ====================================================
+
+function updateDesktopNotificationButton() {
+
+    const button =
+        document.getElementById(
+            "desktopNotificationButton"
+        );
+
+    if (!button) {
+        return;
+    }
+
+
+    if (
+        desktopNotificationsEnabled &&
+        Notification.permission === "granted"
+    ) {
+
+        button.innerText =
+            "ON";
+
+        button.classList.remove(
+            "btn-outline-secondary"
+        );
+
+        button.classList.add(
+            "btn-success"
+        );
+
+    }
+    else {
+
+        button.innerText =
+            "OFF";
+
+        button.classList.remove(
+            "btn-success"
+        );
+
+        button.classList.add(
+            "btn-outline-secondary"
+        );
+
+    }
+
+}
+
+
+// ====================================================
+// ENABLE / DISABLE DESKTOP NOTIFICATIONS
+// ====================================================
+
+async function toggleDesktopNotifications() {
+
+    // Browser does not support desktop notifications
+
+    if (
+        !("Notification" in window)
+    ) {
+
+        alert(
+            "Desktop notifications are not supported by this browser."
+        );
+
+        return;
+
+    }
+
+
+    // Already ON → turn OFF
+
+    if (
+        desktopNotificationsEnabled &&
+        Notification.permission === "granted"
+    ) {
+
+        desktopNotificationsEnabled =
+            false;
+
+        localStorage.setItem(
+            "RVRG_DESKTOP_NOTIFICATIONS",
+            "false"
+        );
+
+        updateDesktopNotificationButton();
+
+        return;
+
+    }
+
+
+    // Request browser permission
+
+    let permission =
+        Notification.permission;
+
+
+    if (
+        permission !== "granted"
+    ) {
+
+        permission =
+            await Notification.requestPermission();
+
+    }
+
+
+    if (
+        permission === "granted"
+    ) {
+
+        desktopNotificationsEnabled =
+            true;
+
+        localStorage.setItem(
+            "RVRG_DESKTOP_NOTIFICATIONS",
+            "true"
+        );
+
+
+        updateDesktopNotificationButton();
+
+
+        // Confirmation popup
+
+        new Notification(
+            "RVRG Store Management",
+            {
+                body:
+                    "Desktop notifications are now enabled.",
+                icon:
+                    "RVRG LOGO.jpg"
+            }
+        );
+
+    }
+    else {
+
+        desktopNotificationsEnabled =
+            false;
+
+        localStorage.setItem(
+            "RVRG_DESKTOP_NOTIFICATIONS",
+            "false"
+        );
+
+        updateDesktopNotificationButton();
+
+        alert(
+            "Desktop notification permission was not granted."
+        );
+
+    }
+
+}
+
+
+// ====================================================
+// SHOW DESKTOP NOTIFICATION
+// ====================================================
+
+function showDesktopNotification(
+    notification
+) {
+
+    if (
+        !desktopNotificationsEnabled
+    ) {
+        return;
+    }
+
+
+    if (
+        !("Notification" in window)
+    ) {
+        return;
+    }
+
+
+    if (
+        Notification.permission !==
+        "granted"
+    ) {
+        return;
+    }
+
+
+    const desktopNotification =
+        new Notification(
+            notification.title ||
+            "RVRG Store Management",
+            {
+                body:
+                    notification.message ||
+                    "You have a new notification.",
+                icon:
+                    "RVRG LOGO.jpg",
+                tag:
+                    "rvrg-notification-" +
+                    (
+                        notification.id ||
+                        Date.now()
+                    )
+            }
+        );
+
+
+    desktopNotification.onclick =
+        function() {
+
+            window.focus();
+
+            openNotificationTarget(
+                notification
+            );
+
+            desktopNotification.close();
+
+        };
+
+
+    setTimeout(
+        function() {
+
+            desktopNotification.close();
+
+        },
+        10000
+    );
+
+}
 
 function playNotificationSound() {
 
