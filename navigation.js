@@ -389,17 +389,42 @@ function renderHeader() {
             class="card-header d-flex justify-content-between align-items-center"
         >
 
-            <strong>
-                Notifications
-            </strong>
+           <div
+    class="card-header d-flex justify-content-between align-items-center"
+>
 
-            <button
-                type="button"
-                id="markAllNotificationsRead"
-                class="btn btn-sm btn-link"
-            >
-                Mark all read
-            </button>
+    <strong>
+        Notifications
+    </strong>
+
+
+    <div
+        class="d-flex align-items-center gap-2"
+    >
+
+        <button
+            type="button"
+            id="notificationVolumeButton"
+            class="btn btn-sm btn-outline-secondary"
+            title="Increase notification volume"
+            onclick="changeNotificationVolume()"
+        >
+            <i class="fa-solid fa-volume-high me-1"></i>
+            7/10
+        </button>
+
+
+        <button
+            type="button"
+            id="markAllNotificationsRead"
+            class="btn btn-sm btn-link"
+        >
+            Mark all read
+        </button>
+
+    </div>
+
+</div>
 
         </div>
 
@@ -482,7 +507,9 @@ const user =
 if (!user) {
     return;
 }
-
+    
+updateNotificationVolumeDisplay();
+    
 // Unlock browser audio after first user interaction
 document.addEventListener(
     "click",
@@ -1215,10 +1242,94 @@ function openNotificationTarget(
 }
 
 // ====================================================
-// NOTIFICATION SOUND
+// NOTIFICATION SOUND + 10 LEVEL VOLUME
 // ====================================================
 
 let notificationAudio = null;
+
+let notificationVolumeLevel =
+    Number(
+        localStorage.getItem(
+            "RVRG_NOTIFICATION_VOLUME"
+        )
+    ) || 7;
+
+
+// Keep volume between 1 and 10
+
+notificationVolumeLevel =
+    Math.min(
+        10,
+        Math.max(
+            1,
+            notificationVolumeLevel
+        )
+    );
+
+
+function getNotificationVolume() {
+
+    return (
+        notificationVolumeLevel / 10
+    );
+
+}
+
+
+function updateNotificationVolumeDisplay() {
+
+    const button =
+        document.getElementById(
+            "notificationVolumeButton"
+        );
+
+    if (!button) {
+        return;
+    }
+
+    const level =
+        notificationVolumeLevel;
+
+    button.innerHTML =
+        `
+        <i class="fa-solid fa-volume-high me-1"></i>
+        ${level}/10
+        `;
+
+}
+
+
+function changeNotificationVolume() {
+
+    if (
+        notificationVolumeLevel >= 10
+    ) {
+
+        return;
+
+    }
+
+    notificationVolumeLevel++;
+
+    localStorage.setItem(
+        "RVRG_NOTIFICATION_VOLUME",
+        notificationVolumeLevel
+    );
+
+
+    // Apply immediately if audio exists
+
+    if (notificationAudio) {
+
+        notificationAudio.volume =
+            getNotificationVolume();
+
+    }
+
+
+    updateNotificationVolumeDisplay();
+
+}
 
 
 function initializeNotificationAudio() {
@@ -1226,6 +1337,7 @@ function initializeNotificationAudio() {
     if (notificationAudio) {
         return;
     }
+
 
     notificationAudio =
         new Audio(
@@ -1236,7 +1348,7 @@ function initializeNotificationAudio() {
         "auto";
 
     notificationAudio.volume =
-        0.65;
+        getNotificationVolume();
 
 }
 
@@ -1249,12 +1361,18 @@ function unlockNotificationAudio() {
         return;
     }
 
-    notificationAudio.muted = true;
+
+    notificationAudio.muted =
+        true;
+
 
     const promise =
         notificationAudio.play();
 
-    if (promise !== undefined) {
+
+    if (
+        promise !== undefined
+    ) {
 
         promise
             .then(() => {
@@ -1288,30 +1406,39 @@ function playNotificationSound() {
         return;
     }
 
+
     notificationAudio.currentTime =
         0;
+
+    notificationAudio.volume =
+        getNotificationVolume();
 
     notificationAudio.muted =
         false;
 
+
     const promise =
         notificationAudio.play();
 
-    if (promise !== undefined) {
 
-        promise.catch(error => {
+    if (
+        promise !== undefined
+    ) {
 
-            console.warn(
-                "Notification sound blocked:",
-                error
-            );
+        promise.catch(
+            error => {
 
-        });
+                console.warn(
+                    "Notification sound blocked:",
+                    error
+                );
+
+            }
+        );
 
     }
 
 }
-
 // ====================================================
 // NOTIFICATION TOAST
 // ====================================================
