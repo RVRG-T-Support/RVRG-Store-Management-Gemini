@@ -680,7 +680,7 @@ return filtered.map(
 
 
 // ====================================================
-// MATERIAL CONSUMPTION / ISSUE
+// MATERIAL CONSUMPTION / ISSUE REPORT
 // ====================================================
 
 async function fetchConsumptionData(
@@ -697,23 +697,30 @@ async function fetchConsumptionData(
                 "material_issue_register"
             )
 
-.select(`
-    ticket_no,
-    location_type,
-    location_name,
-    issued_date,
-    issued_qty,
-    unit_cost,
-    issued_by,
+            .select(`
+                ticket_no,
+                location_type,
+                location_name,
+                issued_date,
+                issued_qty,
+                unit_cost,
+                issued_by,
 
-    materials!material_issue_register_material_id_fkey(
-        material_name,
-        department_id,
-        departments(
-            department_name
-        )
-    )
-`)
+                materials!material_issue_register_material_id_fkey(
+                    material_code,
+                    material_name,
+                    category,
+                    brand,
+                    item_type,
+                    item_size,
+                    specification,
+                    department_id,
+
+                    departments(
+                        department_name
+                    )
+                )
+            `)
 
             .gte(
                 "issued_date",
@@ -747,6 +754,10 @@ async function fetchConsumptionData(
         data || [];
 
 
+    // ==================================================
+    // DEPARTMENT FILTER
+    // ==================================================
+
     if (
         departmentName !== "ALL"
     ) {
@@ -763,6 +774,10 @@ async function fetchConsumptionData(
     }
 
 
+    // ==================================================
+    // AREA FILTER
+    // ==================================================
+
     if (
         areaType !== "ALL"
     ) {
@@ -777,55 +792,104 @@ async function fetchConsumptionData(
     }
 
 
-return filtered.map(
-    row => ({
+    // ==================================================
+    // BUILD REPORT DATA
+    // ==================================================
 
-        date:
-            row.issued_date,
+    return filtered.map(
+        row => {
 
-        reference:
-            row.ticket_no,
+            const material =
+                row.materials || {};
 
-        material:
-            row.materials
-                ?.material_name
-            || "-",
 
-        department:
-            row.materials
-                ?.departments
-                ?.department_name
-            || "-",
+            const materialDetails = [
 
-        area:
-            row.location_type
-            || "-",
+                material.material_code
+                    ? `Code: ${material.material_code}`
+                    : "",
 
-        quantity:
-            Number(
-                row.issued_qty || 0
-            ),
+                material.category
+                    ? `Category: ${material.category}`
+                    : "",
 
-        value:
-            Number(
-                row.issued_qty || 0
+                material.brand
+                    ? `Brand: ${material.brand}`
+                    : "",
+
+                material.item_type
+                    ? `Type: ${material.item_type}`
+                    : "",
+
+                material.item_size
+                    ? `Size: ${material.item_size}`
+                    : "",
+
+                material.specification
+                    ? `Specification: ${material.specification}`
+                    : ""
+
+            ]
+            .filter(
+                value =>
+                    value !== ""
             )
-            *
-            Number(
-                row.unit_cost || 0
-            ),
+            .join(" | ");
 
-        requestedBy:
-            "-",
 
-        approvedBy:
-            "-",
+            return {
 
-        issuedBy:
-            row.issued_by || "-"
+                date:
+                    row.issued_date,
 
-    })
-);
+                reference:
+                    row.ticket_no
+                    || "-",
+
+                material:
+                    material.material_name
+                    || "-",
+
+                department:
+                    material.departments
+                        ?.department_name
+                    || "-",
+
+                area:
+                    row.location_type
+                    || "-",
+
+                quantity:
+                    Number(
+                        row.issued_qty || 0
+                    ),
+
+                value:
+                    Number(
+                        row.issued_qty || 0
+                    )
+                    *
+                    Number(
+                        row.unit_cost || 0
+                    ),
+
+                requestedBy:
+                    "-",
+
+                approvedBy:
+                    "-",
+
+                issuedBy:
+                    row.issued_by
+                    || "-",
+
+                extra:
+                    materialDetails
+
+            };
+
+        }
+    );
 
 }
 
