@@ -476,15 +476,23 @@ let notificationRealtimeChannel = null;
 
 async function initializeNotifications() {
 
-    const user =
-        getCurrentUser();
+const user =
+    getCurrentUser();
 
-    if (!user) {
-        return;
+if (!user) {
+    return;
+}
+
+// Unlock browser audio after first user interaction
+document.addEventListener(
+    "click",
+    unlockNotificationAudio,
+    {
+        once: true
     }
+);
 
-
-    // Load existing notifications
+// Load existing notifications
 
     await loadNotifications();
 
@@ -1212,40 +1220,93 @@ function openNotificationTarget(
 
 let notificationAudio = null;
 
-function playNotificationSound() {
 
-    try {
+function initializeNotificationAudio() {
 
-        if (!notificationAudio) {
+    if (notificationAudio) {
+        return;
+    }
 
-            notificationAudio =
-                new Audio("notification.mp3");
+    notificationAudio =
+        new Audio(
+            "notification.mp3"
+        );
 
-            notificationAudio.volume =
-                0.65;
+    notificationAudio.preload =
+        "auto";
 
-        }
+    notificationAudio.volume =
+        0.65;
 
-        notificationAudio.currentTime =
-            0;
+}
 
-        notificationAudio.play()
-            .catch(error => {
 
-                console.warn(
-                    "Notification sound blocked:",
-                    error
-                );
+function unlockNotificationAudio() {
+
+    initializeNotificationAudio();
+
+    if (!notificationAudio) {
+        return;
+    }
+
+    notificationAudio.muted = true;
+
+    const promise =
+        notificationAudio.play();
+
+    if (promise !== undefined) {
+
+        promise
+            .then(() => {
+
+                notificationAudio.pause();
+
+                notificationAudio.currentTime =
+                    0;
+
+                notificationAudio.muted =
+                    false;
+
+            })
+            .catch(() => {
+
+                notificationAudio.muted =
+                    false;
 
             });
 
     }
-    catch(error) {
 
-        console.error(
-            "Notification sound error:",
-            error
-        );
+}
+
+
+function playNotificationSound() {
+
+    initializeNotificationAudio();
+
+    if (!notificationAudio) {
+        return;
+    }
+
+    notificationAudio.currentTime =
+        0;
+
+    notificationAudio.muted =
+        false;
+
+    const promise =
+        notificationAudio.play();
+
+    if (promise !== undefined) {
+
+        promise.catch(error => {
+
+            console.warn(
+                "Notification sound blocked:",
+                error
+            );
+
+        });
 
     }
 
