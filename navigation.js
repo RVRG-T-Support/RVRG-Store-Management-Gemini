@@ -999,7 +999,7 @@ function startNotificationRealtime() {
                     );
 
 
-                    await loadNotifications();
+await loadNotifications();
 
 playNotificationSound();
 
