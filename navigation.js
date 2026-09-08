@@ -402,16 +402,40 @@ function renderHeader() {
         class="d-flex align-items-center gap-2"
     >
 
-        <button
-            type="button"
-            id="notificationVolumeButton"
-            class="btn btn-sm btn-outline-secondary"
-            title="Increase notification volume"
-            onclick="changeNotificationVolume()"
-        >
-            <i class="fa-solid fa-volume-high me-1"></i>
-            7/10
-        </button>
+<div
+    class="d-flex align-items-center border rounded"
+    style="height:32px;"
+>
+
+    <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary border-0"
+        onclick="decreaseNotificationVolume()"
+        title="Decrease notification volume"
+    >
+        <i class="fa-solid fa-volume-low"></i>
+    </button>
+
+
+    <span
+        id="notificationVolumeLevel"
+        class="px-2 small fw-semibold"
+        style="min-width:42px; text-align:center;"
+    >
+        7/10
+    </span>
+
+
+    <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary border-0"
+        onclick="increaseNotificationVolume()"
+        title="Increase notification volume"
+    >
+        <i class="fa-solid fa-volume-high"></i>
+    </button>
+
+</div>
 
 
         <button
@@ -1278,46 +1302,58 @@ function getNotificationVolume() {
 
 function updateNotificationVolumeDisplay() {
 
-    const button =
+    const level =
         document.getElementById(
-            "notificationVolumeButton"
+            "notificationVolumeLevel"
         );
 
-    if (!button) {
+    if (!level) {
         return;
     }
 
-    const level =
-        notificationVolumeLevel;
-
-    button.innerHTML =
-        `
-        <i class="fa-solid fa-volume-high me-1"></i>
-        ${level}/10
-        `;
+    level.innerText =
+        notificationVolumeLevel + "/10";
 
 }
 
 
-function changeNotificationVolume() {
+function increaseNotificationVolume() {
 
     if (
         notificationVolumeLevel >= 10
     ) {
-
         return;
-
     }
 
     notificationVolumeLevel++;
+
+    saveNotificationVolume();
+
+}
+
+
+function decreaseNotificationVolume() {
+
+    if (
+        notificationVolumeLevel <= 1
+    ) {
+        return;
+    }
+
+    notificationVolumeLevel--;
+
+    saveNotificationVolume();
+
+}
+
+
+function saveNotificationVolume() {
 
     localStorage.setItem(
         "RVRG_NOTIFICATION_VOLUME",
         notificationVolumeLevel
     );
 
-
-    // Apply immediately if audio exists
 
     if (notificationAudio) {
 
