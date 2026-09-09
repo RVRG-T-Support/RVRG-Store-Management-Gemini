@@ -556,10 +556,6 @@ const processedNotificationIds =
 // ====================================================
 // CROSS-TAB NOTIFICATION SYNC
 // ====================================================
-
-let notificationBroadcastChannel = null;
-
-
 // ====================================================
 // INITIALIZE CROSS-TAB CHANNEL
 // ====================================================
