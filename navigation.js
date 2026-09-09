@@ -2204,6 +2204,57 @@ function escapeNotificationText(
 
 }
 
+// ====================================================
+// SERVICE WORKER REGISTRATION
+// ====================================================
+
+let rvrgServiceWorkerRegistration = null;
+
+
+async function registerRVRGServiceWorker() {
+
+    if (
+        !("serviceWorker" in navigator)
+    ) {
+
+        console.warn(
+            "Service Worker is not supported by this browser."
+        );
+
+        return null;
+
+    }
+
+
+    try {
+
+        rvrgServiceWorkerRegistration =
+            await navigator.serviceWorker.register(
+                "./sw.js"
+            );
+
+
+        console.log(
+            "RVRG Service Worker registered:",
+            rvrgServiceWorkerRegistration.scope
+        );
+
+
+        return rvrgServiceWorkerRegistration;
+
+    }
+    catch(error) {
+
+        console.error(
+            "RVRG Service Worker registration failed:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
 
 // ====================================================
 // START NOTIFICATION SYSTEM
@@ -2211,7 +2262,9 @@ function escapeNotificationText(
 
 document.addEventListener(
     "DOMContentLoaded",
-    function() {
+    async function() {
+
+        await registerRVRGServiceWorker();
 
         initializeNotifications();
 
