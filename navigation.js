@@ -1908,15 +1908,27 @@ async function toggleDesktopNotifications() {
 
         // Confirmation popup
 
-        new Notification(
-            "RVRG Store Management",
-            {
-                body:
-                    "Desktop notifications are now enabled.",
-                icon:
-                    "RVRG LOGO.jpg"
-            }
-        );
+       const registration =
+    rvrgServiceWorkerRegistration ||
+    await navigator.serviceWorker.ready;
+
+await registration.showNotification(
+    "RVRG Store Management",
+    {
+        body:
+            "Desktop notifications are now enabled.",
+        icon:
+            "RVRG LOGO.jpg",
+        badge:
+            "RVRG LOGO.jpg",
+        tag:
+            "rvrg-desktop-enabled",
+        data: {
+            notificationType:
+                "TEST"
+        }
+    }
+);
 
     }
     else {
@@ -1941,10 +1953,10 @@ async function toggleDesktopNotifications() {
 
 
 // ====================================================
-// SHOW DESKTOP NOTIFICATION
+// SHOW DESKTOP / SYSTEM NOTIFICATION
 // ====================================================
 
-function showDesktopNotification(
+async function showDesktopNotification(
     notification
 ) {
 
@@ -1970,48 +1982,79 @@ function showDesktopNotification(
     }
 
 
-    const desktopNotification =
-        new Notification(
+    try {
+
+        // Use the already registered Service Worker
+
+        const registration =
+            rvrgServiceWorkerRegistration ||
+            await navigator.serviceWorker.ready;
+
+
+        if (!registration) {
+            return;
+        }
+
+
+        await registration.showNotification(
+
             notification.title ||
             "RVRG Store Management",
+
             {
+
                 body:
                     notification.message ||
                     "You have a new notification.",
+
                 icon:
                     "RVRG LOGO.jpg",
+
+                badge:
+                    "RVRG LOGO.jpg",
+
                 tag:
                     "rvrg-notification-" +
                     (
                         notification.id ||
                         Date.now()
-                    )
+                    ),
+
+                renotify:
+                    true,
+
+                requireInteraction:
+                    false,
+
+                data: {
+
+                    notificationId:
+                        notification.id ||
+                        null,
+
+                    notificationType:
+                        notification.notification_type ||
+                        "GENERAL",
+
+                    referenceId:
+                        notification.reference_id ||
+                        null
+
+                }
+
             }
+
         );
 
+    }
+    catch(error) {
 
-    desktopNotification.onclick =
-        function() {
+        console.error(
+            "Desktop notification error:",
+            error
+        );
 
-            window.focus();
-
-            openNotificationTarget(
-                notification
-            );
-
-            desktopNotification.close();
-
-        };
-
-
-    setTimeout(
-        function() {
-
-            desktopNotification.close();
-
-        },
-        10000
-    );
+    }
 
 }
 
