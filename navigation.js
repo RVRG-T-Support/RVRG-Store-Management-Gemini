@@ -542,7 +542,17 @@ document.addEventListener("DOMContentLoaded",()=>{
 // ====================================================
 
 let notificationRealtimeChannel = null;
+let notificationBroadcastChannel = null;
 
+const notificationTabId =
+    "tab-" +
+    Math.random()
+        .toString(36)
+        .substring(2) +
+    Date.now();
+
+const processedNotificationIds =
+    new Set();
 
 // ====================================================
 // INITIALIZE NOTIFICATIONS
@@ -558,8 +568,11 @@ if (!user) {
 }
     
 updateNotificationVolumeDisplay();
-    updateDesktopNotificationButton();
     
+updateDesktopNotificationButton();
+    
+initializeNotificationBroadcast();  
+
 // Unlock browser audio after first user interaction
 document.addEventListener(
     "click",
@@ -573,7 +586,180 @@ document.addEventListener(
 
     await loadNotifications();
 
+// ====================================================
+// CROSS-TAB NOTIFICATION SYNC
+// ====================================================
 
+function initializeNotificationBroadcast() {
+
+    if (
+        typeof BroadcastChannel ===
+        "undefined"
+    ) {
+
+        console.warn(
+            "BroadcastChannel is not supported."
+        );
+
+        return;
+
+    }
+
+
+    notificationBroadcastChannel =
+        new BroadcastChannel(
+            "RVRG_NOTIFICATION_CHANNEL"
+        );
+
+
+    notificationBroadcastChannel.onmessage =
+        function(event) {
+
+            const data =
+                event.data;
+
+
+            if (!data) {
+                return;
+            }
+
+
+            // Ignore our own messages
+
+            if (
+                data.senderId ===
+                notificationTabId
+            ) {
+
+                return;
+
+            }
+
+
+            if (
+                data.type !==
+                "NEW_NOTIFICATION"
+            ) {
+
+                return;
+
+            }
+
+
+            handleIncomingNotification(
+                data.notification,
+                false
+            );
+
+        };
+
+}
+
+
+// ====================================================
+// PROCESS INCOMING NOTIFICATION
+// ====================================================
+
+async function handleIncomingNotification(
+    notification,
+    broadcast = true
+) {
+
+    if (
+        !notification ||
+        !notification.id
+    ) {
+
+        return;
+
+    }
+
+
+    // Prevent duplicate handling
+
+    if (
+        processedNotificationIds.has(
+            notification.id
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    processedNotificationIds.add(
+        notification.id
+    );
+
+
+    // Keep memory under control
+
+    if (
+        processedNotificationIds.size >
+        200
+    ) {
+
+        const firstId =
+            processedNotificationIds
+                .values()
+                .next()
+                .value;
+
+        processedNotificationIds.delete(
+            firstId
+        );
+
+    }
+
+
+    // Broadcast to every other open tab
+
+    if (
+        broadcast &&
+        notificationBroadcastChannel
+    ) {
+
+        notificationBroadcastChannel.postMessage({
+
+            type:
+                "NEW_NOTIFICATION",
+
+            senderId:
+                notificationTabId,
+
+            notification:
+                notification
+
+        });
+
+    }
+
+
+    // Refresh bell / unread count
+
+    await loadNotifications();
+
+
+    // Existing in-page toast
+
+    showNotificationToast(
+        notification
+    );
+
+
+    // Desktop notification
+
+    showDesktopNotification(
+        notification
+    );
+
+
+    // Sound
+
+    playNotificationSound();
+
+}
     // Start realtime listener
 
     startNotificationRealtime();
@@ -1076,27 +1262,19 @@ function startNotificationRealtime() {
                     filter:
                         `user_id=eq.${user.id}`
                 },
-                async function(payload) {
+async function(payload) {
 
-                    console.log(
-                        "New Notification:",
-                        payload.new
-                    );
+    console.log(
+        "New Notification:",
+        payload.new
+    );
 
+    await handleIncomingNotification(
+        payload.new,
+        true
+    );
 
-await loadNotifications();
-
-playNotificationSound();
-
-showNotificationToast(
-    payload.new
-);
-
-showDesktopNotification(
-    payload.new
-);
-
-                }
+}
             )
 
             .subscribe(
