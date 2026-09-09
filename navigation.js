@@ -553,6 +553,312 @@ const notificationTabId =
 
 const processedNotificationIds =
     new Set();
+// ====================================================
+// CROSS-TAB NOTIFICATION SYNC
+// ====================================================
+
+let notificationBroadcastChannel = null;
+
+
+// ====================================================
+// INITIALIZE CROSS-TAB CHANNEL
+// ====================================================
+
+function initializeNotificationBroadcast() {
+
+    // -----------------------------------------------
+    // BroadcastChannel
+    // -----------------------------------------------
+
+    if (
+        "BroadcastChannel" in window
+    ) {
+
+        notificationBroadcastChannel =
+            new BroadcastChannel(
+                "RVRG_NOTIFICATION_CHANNEL"
+            );
+
+
+        notificationBroadcastChannel.onmessage =
+            async function(event) {
+
+                const data =
+                    event.data;
+
+
+                if (!data) {
+                    return;
+                }
+
+
+                if (
+                    data.senderId ===
+                    notificationTabId
+                ) {
+
+                    return;
+                }
+
+
+                if (
+                    data.type !==
+                    "NEW_NOTIFICATION"
+                ) {
+
+                    return;
+                }
+
+
+                await handleIncomingNotification(
+                    data.notification,
+                    false
+                );
+
+            };
+
+    }
+    else {
+
+        console.warn(
+            "BroadcastChannel unavailable; localStorage fallback will be used."
+        );
+
+    }
+
+
+    // -----------------------------------------------
+    // localStorage fallback
+    // -----------------------------------------------
+
+    window.addEventListener(
+        "storage",
+        async function(event) {
+
+            if (
+                event.key !==
+                "RVRG_NOTIFICATION_EVENT"
+            ) {
+
+                return;
+
+            }
+
+
+            if (!event.newValue) {
+                return;
+            }
+
+
+            try {
+
+                const data =
+                    JSON.parse(
+                        event.newValue
+                    );
+
+
+                if (!data) {
+                    return;
+                }
+
+
+                if (
+                    data.senderId ===
+                    notificationTabId
+                ) {
+
+                    return;
+                }
+
+
+                if (
+                    data.type !==
+                    "NEW_NOTIFICATION"
+                ) {
+
+                    return;
+                }
+
+
+                await handleIncomingNotification(
+                    data.notification,
+                    false
+                );
+
+            }
+            catch(error) {
+
+                console.error(
+                    "Cross-tab notification parse error:",
+                    error
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+// ====================================================
+// HANDLE INCOMING NOTIFICATION
+// ====================================================
+
+async function handleIncomingNotification(
+    notification,
+    broadcast = true
+) {
+
+    if (
+        !notification ||
+        !notification.id
+    ) {
+
+        return;
+
+    }
+
+
+    // Prevent duplicate notification handling
+
+    if (
+        processedNotificationIds.has(
+            notification.id
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    processedNotificationIds.add(
+        notification.id
+    );
+
+
+    // Limit memory
+
+    if (
+        processedNotificationIds.size >
+        200
+    ) {
+
+        const firstId =
+            processedNotificationIds
+                .values()
+                .next()
+                .value;
+
+        processedNotificationIds.delete(
+            firstId
+        );
+
+    }
+
+
+    // -----------------------------------------------
+    // SEND TO OTHER TABS
+    // -----------------------------------------------
+
+    if (broadcast) {
+
+        const message = {
+
+            type:
+                "NEW_NOTIFICATION",
+
+            senderId:
+                notificationTabId,
+
+            notification:
+                notification,
+
+            sentAt:
+                Date.now()
+
+        };
+
+
+        // BroadcastChannel
+
+        if (
+            notificationBroadcastChannel
+        ) {
+
+            try {
+
+                notificationBroadcastChannel.postMessage(
+                    message
+                );
+
+            }
+            catch(error) {
+
+                console.warn(
+                    "BroadcastChannel send failed:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        // localStorage fallback
+
+        try {
+
+            localStorage.setItem(
+                "RVRG_NOTIFICATION_EVENT",
+                JSON.stringify(
+                    message
+                )
+            );
+
+
+            // Remove immediately so the same event
+            // doesn't remain in storage
+
+            localStorage.removeItem(
+                "RVRG_NOTIFICATION_EVENT"
+            );
+
+        }
+        catch(error) {
+
+            console.warn(
+                "localStorage notification broadcast failed:",
+                error
+            );
+
+        }
+
+    }
+
+
+    // -----------------------------------------------
+    // UPDATE THIS TAB
+    // -----------------------------------------------
+
+    await loadNotifications();
+
+
+    showNotificationToast(
+        notification
+    );
+
+
+    showDesktopNotification(
+        notification
+    );
+
+
+    playNotificationSound();
+
+}
 
 // ====================================================
 // INITIALIZE NOTIFICATIONS
@@ -586,180 +892,7 @@ document.addEventListener(
 
     await loadNotifications();
 
-// ====================================================
-// CROSS-TAB NOTIFICATION SYNC
-// ====================================================
 
-function initializeNotificationBroadcast() {
-
-    if (
-        typeof BroadcastChannel ===
-        "undefined"
-    ) {
-
-        console.warn(
-            "BroadcastChannel is not supported."
-        );
-
-        return;
-
-    }
-
-
-    notificationBroadcastChannel =
-        new BroadcastChannel(
-            "RVRG_NOTIFICATION_CHANNEL"
-        );
-
-
-    notificationBroadcastChannel.onmessage =
-        function(event) {
-
-            const data =
-                event.data;
-
-
-            if (!data) {
-                return;
-            }
-
-
-            // Ignore our own messages
-
-            if (
-                data.senderId ===
-                notificationTabId
-            ) {
-
-                return;
-
-            }
-
-
-            if (
-                data.type !==
-                "NEW_NOTIFICATION"
-            ) {
-
-                return;
-
-            }
-
-
-            handleIncomingNotification(
-                data.notification,
-                false
-            );
-
-        };
-
-}
-
-
-// ====================================================
-// PROCESS INCOMING NOTIFICATION
-// ====================================================
-
-async function handleIncomingNotification(
-    notification,
-    broadcast = true
-) {
-
-    if (
-        !notification ||
-        !notification.id
-    ) {
-
-        return;
-
-    }
-
-
-    // Prevent duplicate handling
-
-    if (
-        processedNotificationIds.has(
-            notification.id
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    processedNotificationIds.add(
-        notification.id
-    );
-
-
-    // Keep memory under control
-
-    if (
-        processedNotificationIds.size >
-        200
-    ) {
-
-        const firstId =
-            processedNotificationIds
-                .values()
-                .next()
-                .value;
-
-        processedNotificationIds.delete(
-            firstId
-        );
-
-    }
-
-
-    // Broadcast to every other open tab
-
-    if (
-        broadcast &&
-        notificationBroadcastChannel
-    ) {
-
-        notificationBroadcastChannel.postMessage({
-
-            type:
-                "NEW_NOTIFICATION",
-
-            senderId:
-                notificationTabId,
-
-            notification:
-                notification
-
-        });
-
-    }
-
-
-    // Refresh bell / unread count
-
-    await loadNotifications();
-
-
-    // Existing in-page toast
-
-    showNotificationToast(
-        notification
-    );
-
-
-    // Desktop notification
-
-    showDesktopNotification(
-        notification
-    );
-
-
-    // Sound
-
-    playNotificationSound();
-
-}
     // Start realtime listener
 
     startNotificationRealtime();
